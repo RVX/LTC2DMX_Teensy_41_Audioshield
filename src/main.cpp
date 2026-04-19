@@ -67,6 +67,105 @@ static RecMark  recBuf[512];
 static uint16_t recCount = 0;
 
 // -----------------------------------------------------------------------------
+// Non-blocking DMX test state machine (driven by loop())
+// Avoids blocking delay() calls that kill USB serial on Teensy 4.1.
+// -----------------------------------------------------------------------------
+static struct {
+    uint8_t  step;      // 0 = idle
+    uint32_t stepStart; // millis() when current step began
+} dmxTest = {0, 0};
+
+static void dmxTestStart() {
+    tcMute = true;
+    Serial.println("=== DMX TEST \u2014 cycling channels ===");
+    Serial.println("Wiring: Teensy TX1 (pin1) -> module TXD");
+    Serial.println("        module A -> XLR pin 3 (Data+)");
+    Serial.println("        module B -> XLR pin 2 (Data-)");
+    Serial.println("        module GND -> XLR pin 1 (GND)");
+    Serial.println();
+    for (uint16_t ch = 1; ch <= 7; ch++) dmxSender.set(ch, 0);
+    dmxTest.step = 1;
+    dmxTest.stepStart = millis();
+}
+
+static void dmxTestTick() {
+    if (dmxTest.step == 0) return;
+    uint32_t e = millis() - dmxTest.stepStart;
+    switch (dmxTest.step) {
+    case 1: // all-off 300ms
+        if (e >= 300) {
+            Serial.println("[1] White ramp");
+            dmxSender.set(DMX_CH_MASTER, 255);
+            dmxSender.set(DMX_CH_MODE,   0);
+            dmxSender.set(DMX_CH_SPEED,  0);
+            dmxSender.set(DMX_CH_STROBE, 0);
+            dmxSender.set(DMX_CH_RED,    0);
+            dmxSender.set(DMX_CH_GREEN,  0);
+            dmxSender.set(DMX_CH_BLUE,   0);
+            dmxTest.step = 2; dmxTest.stepStart = millis();
+        }
+        break;
+    case 2: { // white ramp ~170ms
+        uint8_t v = (uint8_t)((e / 10) * 15); if (v > 255) v = 255;
+        dmxSender.set(DMX_CH_RED, v); dmxSender.set(DMX_CH_GREEN, v); dmxSender.set(DMX_CH_BLUE, v);
+        if (e >= 170) {
+            dmxSender.set(DMX_CH_RED, 255); dmxSender.set(DMX_CH_GREEN, 255); dmxSender.set(DMX_CH_BLUE, 255);
+            dmxTest.step = 3; dmxTest.stepStart = millis();
+        }
+        break;
+    }
+    case 3: // hold white 800ms
+        if (e >= 800) {
+            Serial.println("[2] RED");
+            dmxSender.set(DMX_CH_GREEN, 0); dmxSender.set(DMX_CH_BLUE, 0);
+            dmxTest.step = 4; dmxTest.stepStart = millis();
+        }
+        break;
+    case 4: // hold red 700ms
+        if (e >= 700) {
+            Serial.println("[3] GREEN");
+            dmxSender.set(DMX_CH_RED, 0); dmxSender.set(DMX_CH_GREEN, 255);
+            dmxTest.step = 5; dmxTest.stepStart = millis();
+        }
+        break;
+    case 5: // hold green 700ms
+        if (e >= 700) {
+            Serial.println("[4] BLUE");
+            dmxSender.set(DMX_CH_GREEN, 0); dmxSender.set(DMX_CH_BLUE, 255);
+            dmxTest.step = 6; dmxTest.stepStart = millis();
+        }
+        break;
+    case 6: // hold blue 700ms
+        if (e >= 700) {
+            Serial.println("[5] WHITE+STROBE");
+            dmxSender.set(DMX_CH_RED, 255); dmxSender.set(DMX_CH_GREEN, 255);
+            dmxSender.set(DMX_CH_STROBE, 128);
+            dmxTest.step = 7; dmxTest.stepStart = millis();
+        }
+        break;
+    case 7: // strobe 1000ms
+        if (e >= 1000) {
+            dmxSender.set(DMX_CH_STROBE, 0);
+            Serial.println("[6] Blackout");
+            for (uint16_t ch = 1; ch <= 7; ch++) dmxSender.set(ch, 0);
+            dmxTest.step = 8; dmxTest.stepStart = millis();
+        }
+        break;
+    case 8: // blackout 300ms then done
+        if (e >= 300) {
+            Serial.println("=== DMX TEST DONE ===");
+            Serial.println("If NO light: check wiring, DMX address (d001), XLR polarity");
+            Serial.println("If light but wrong color: check channel mode (7-ch)");
+            while (recordQueue.available()) recordQueue.freeBuffer();
+            ltcDecoder.resync();
+            tcMute = false;
+            dmxTest.step = 0;
+        }
+        break;
+    }
+}
+
+// -----------------------------------------------------------------------------
 
 static uint8_t clamp8(int v) { return (uint8_t)(v < 0 ? 0 : v > 255 ? 255 : v); }
 
@@ -157,68 +256,8 @@ static void processCmd(const char* cmd) {
         else{Serial.println(">> PLAY MODE -- LTC drives cues"); dmxCtrl.blackout();}
     }
     else if (c=='t'||c=='T') {
-        tcMute = true;
-        Serial.println("=== DMX TEST — cycling channels ===");
-        Serial.println("Wiring: Teensy TX1 (pin1) -> module TXD");
-        Serial.println("        module A -> XLR pin 3 (Data+)");
-        Serial.println("        module B -> XLR pin 2 (Data-)");
-        Serial.println("        module GND -> XLR pin 1 (GND)");
-        Serial.println();
-        // Step 1: All off
-        for (uint16_t ch = 1; ch <= 7; ch++) dmxSender.set(ch, 0);
-        delay(500);
-        // Step 2: Master full, RGB white ramp
-        Serial.println("[1] Master=255, R=G=B ramp 0->255 (white)");
-        dmxSender.set(DMX_CH_MASTER, 255);
-        dmxSender.set(DMX_CH_MODE, 0);
-        dmxSender.set(DMX_CH_SPEED, 0);
-        dmxSender.set(DMX_CH_STROBE, 0);
-        for (int v = 0; v <= 255; v += 5) {
-            dmxSender.set(DMX_CH_RED, v);
-            dmxSender.set(DMX_CH_GREEN, v);
-            dmxSender.set(DMX_CH_BLUE, v);
-            delay(30);
-        }
-        Serial.println("    -> Light should be FULL WHITE now");
-        delay(2000);
-        // Step 3: Red only
-        Serial.println("[2] RED only");
-        dmxSender.set(DMX_CH_RED, 255);
-        dmxSender.set(DMX_CH_GREEN, 0);
-        dmxSender.set(DMX_CH_BLUE, 0);
-        delay(2000);
-        // Step 4: Green only
-        Serial.println("[3] GREEN only");
-        dmxSender.set(DMX_CH_RED, 0);
-        dmxSender.set(DMX_CH_GREEN, 255);
-        dmxSender.set(DMX_CH_BLUE, 0);
-        delay(2000);
-        // Step 5: Blue only
-        Serial.println("[4] BLUE only");
-        dmxSender.set(DMX_CH_RED, 0);
-        dmxSender.set(DMX_CH_GREEN, 0);
-        dmxSender.set(DMX_CH_BLUE, 255);
-        delay(2000);
-        // Step 6: Strobe test
-        Serial.println("[5] WHITE + STROBE (ch5=128)");
-        dmxSender.set(DMX_CH_RED, 255);
-        dmxSender.set(DMX_CH_GREEN, 255);
-        dmxSender.set(DMX_CH_BLUE, 255);
-        dmxSender.set(DMX_CH_STROBE, 128);
-        delay(3000);
-        dmxSender.set(DMX_CH_STROBE, 0);
-        // Step 7: Blackout
-        Serial.println("[6] Blackout");
-        for (uint16_t ch = 1; ch <= 7; ch++) dmxSender.set(ch, 0);
-        delay(1000);
-        Serial.println("=== DMX TEST DONE ===");
-        Serial.println("If NO light: check wiring, DMX address (d001), XLR polarity");
-        Serial.println("If light but wrong color: check channel mode (7-ch)");
-        // Drain audio blocks that queued during the blocking test, then resync
-        // the decoder so stale audio does not produce false timecodes.
-        while (recordQueue.available()) recordQueue.freeBuffer();
-        ltcDecoder.resync();
-        tcMute = false;
+        if (dmxTest.step == 0) dmxTestStart();
+        else Serial.println("DMX test already running");
     }
     else if (c=='?') {
         Serial.println("LIVE COMPOSE  (single keys instant, i/s/m need Enter)");
@@ -572,6 +611,9 @@ void loop()
         ltcDisplay.update();
     }
 #endif
+
+    // -- Non-blocking DMX test tick -------------------------------------------
+    dmxTestTick();
 
     // -- Serial command input --------------------------------------------------
     {
