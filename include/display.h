@@ -30,9 +30,14 @@ public:
     // Call once in setup() — returns false if display not found
     bool begin() {
         if (!_display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR)) return false;
-        // Bump I2C to 1 MHz (Fast-mode Plus) — Teensy 4.1 supports it;
-        // display-only traffic from here on so no need to drop back.
+        // Teensy 4.1 supports I2C Fast-mode Plus (1 MHz); Teensy 3.6 tops out
+        // at 400 kHz reliably. The -D TEENSY36 flag in platformio.ini selects
+        // the safe limit automatically — display refresh is unaffected either way.
+#ifdef TEENSY36
+        Wire.setClock(400000);
+#else
         Wire.setClock(1000000);
+#endif
         _display.clearDisplay();
         _display.setTextWrap(false);
         _display.display();

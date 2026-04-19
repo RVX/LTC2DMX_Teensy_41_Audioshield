@@ -10,7 +10,8 @@ Built for Julian Charrière — Museo Correr, Venice 2026 by Victor Mazon Gardoq
 
 | Component | Notes |
 |-----------|-------|
-| **Teensy 4.1** | IMXRT1062, 600 MHz, built-in SD slot |
+| **Teensy 4.1** *(recommended)* | IMXRT1062, 600 MHz, built-in SD slot |
+| **Teensy 3.6** *(supported)* | MK66FX1M0, 180 MHz, built-in SD slot — see [Using a Teensy 3.6](#using-a-teensy-36) |
 | **Teensy Audio Shield** (SGTL5000) | LINE IN = left 3.5 mm jack (LTC input) |
 | **JZK TTL→RS485 Module** | Auto-direction, 3.3V compatible, converts serial → DMX differential pair |
 | **Blackmagic HyperDeck Studio HD Plus** | BNC LTC OUT → 3.5 mm LINE IN (no termination) |
@@ -253,6 +254,52 @@ All parameters are in [`include/config.h`](include/config.h):
 | Wrong colors | Verify light is in 7-channel mode at address d001 |
 | TC spam floods serial | Press `q` to mute (muted by default) |
 | Can't type commands | Press `q` first to stop TC printing, then type commands |
+
+---
+
+## Using a Teensy 3.6
+
+The project runs on a Teensy 3.6 without any code changes. A dedicated build environment is already configured in `platformio.ini`.
+
+### Build and upload for Teensy 3.6
+
+```bash
+# Build
+pio run -e teensy36
+
+# Upload
+pio run -e teensy36 --target upload
+
+# Serial monitor (same baud rate)
+pio device monitor
+```
+
+In VS Code / PlatformIO IDE: select the **`teensy36`** environment in the bottom status bar before clicking Build / Upload.
+
+### What works identically
+
+- SMPTE LTC decoding (same audio shield, same I2S pinout)
+- DMX output on Serial1 pin 1 TX (identical to 4.1)
+- Built-in SD card slot (`BUILTIN_SDCARD`)
+- OLED display on I2C (SDA/SCL same pins)
+- All serial commands, cue engine, fade interpolation
+- Hardware FPU — Cortex-M4F, so all float math in the LTC decoder runs in hardware
+
+### Known differences vs Teensy 4.1
+
+| | Teensy 4.1 | Teensy 3.6 |
+|---|---|---|
+| CPU speed | 600 MHz | 180 MHz |
+| I2C max speed | 1 MHz (Fast-mode+) | 400 kHz (Fast-mode) |
+| Production status | Current | Discontinued |
+
+**I2C speed** is the only thing that requires a code adaptation. The `TEENSY36` build flag (set automatically by `platformio.ini`) makes `display.h` call `Wire.setClock(400000)` instead of `Wire.setClock(1000000)`. Display refresh rate is identical — the I2C bandwidth at 400 kHz is still ~40× more than the display needs at 30 fps.
+
+**CPU speed** is not a bottleneck. The LTC decoder processes one audio block (~3 ms of audio) per iteration; at 180 MHz there are still thousands of spare cycles per sample.
+
+### No changes needed in config.h
+
+All parameters in `include/config.h` are board-agnostic. `LTC_SAMPLES_PER_BIT` uses `AUDIO_SAMPLE_RATE_EXACT` which is the same (`44117.647 Hz`) on both boards since it comes from the audio shield clock.
 
 ---
 
