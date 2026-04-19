@@ -69,7 +69,7 @@ void DMXController::tick()
 {
     uint32_t now = millis();
 
-    for (uint16_t ch = 1; ch <= 512; ++ch) {
+    for (uint16_t ch = 1; ch <= DMX_UNIVERSE_SIZE; ++ch) {
         FadeState& fade = _fades[ch];
         if (!fade.active) continue;
 
@@ -94,9 +94,9 @@ void DMXController::tick()
 void DMXController::blackout()
 {
     memset(_dmxState, 0, sizeof(_dmxState));
+    memset(_fades,    0, sizeof(_fades));   // clears all active flags (bool → 0 = false)
     for (uint16_t ch = 1; ch <= DMX_UNIVERSE_SIZE; ++ch) {
         _sender.set(ch, 0);
-        _fades[ch].active = false;
     }
 }
 

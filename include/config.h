@@ -48,6 +48,30 @@
 // #define DEBUG_AUDIO_LEVEL
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Runtime Diagnostics
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Milliseconds of silence before reporting LTC LOST
+#define LTC_LOSS_TIMEOUT_MS    1000
+
+// Interval (ms) between [STAT] heartbeat lines
+#define HEARTBEAT_INTERVAL_MS  5000
+
+// Comment out to disable the periodic [STAT] heartbeat line
+#define DEBUG_HEARTBEAT
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SSD1306 Display
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Display refresh interval — derived from LTC_FRAMERATE so one display update
+// per LTC frame regardless of 24 / 25 / 29.97 / 30.
+#define DISPLAY_REFRESH_MS  (1000 / LTC_FRAMERATE)
+
+// Comment out to disable the OLED display entirely
+#define ENABLE_DISPLAY
+
+// ─────────────────────────────────────────────────────────────────────────────
 // DMX Output Configuration
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -57,15 +81,28 @@
 #define DMX_SERIAL_PORT       Serial1
 
 // Total number of DMX channels to transmit (universe size, max 512)
-#define DMX_UNIVERSE_SIZE     2
+#define DMX_UNIVERSE_SIZE     7
 
 // ── Fixture channel map ────────────────────────────────────────────────────
-// All 4 fixtures share the same DMX start address in 2-channel mode:
-//   CH 1 = intensity  ( 0 = off, 255 = full )
-//   CH 2 = strobe     ( 0 = off, 1-255 = slow to fast )
+// 7-channel RGB PAR lamp:
+//   CH 1 = Total dimming / master  ( 0 = off, 255 = full )
+//   CH 2 = Red dimming             ( 0-255 )
+//   CH 3 = Green dimming           ( 0-255 )
+//   CH 4 = Blue dimming            ( 0-255 )
+//   CH 5 = Strobe                  ( 0-3 = off, 4-255 = slow→fast )
+//   CH 6 = Mode                    ( 0-49 = manual RGB )
+//   CH 7 = Effect speed            ( 0-255, only used with modes 50+ )
 #define DMX_BASE_ADDR         1
-#define DMX_CH_INTENSITY      DMX_BASE_ADDR
-#define DMX_CH_STROBE        (DMX_BASE_ADDR + 1)
+#define DMX_CH_MASTER        (DMX_BASE_ADDR)
+#define DMX_CH_RED           (DMX_BASE_ADDR + 1)
+#define DMX_CH_GREEN         (DMX_BASE_ADDR + 2)
+#define DMX_CH_BLUE          (DMX_BASE_ADDR + 3)
+#define DMX_CH_STROBE        (DMX_BASE_ADDR + 4)
+#define DMX_CH_MODE          (DMX_BASE_ADDR + 5)
+#define DMX_CH_SPEED         (DMX_BASE_ADDR + 6)
+
+// Legacy alias used by live-compose commands (maps to master for white)
+#define DMX_CH_INTENSITY      DMX_CH_MASTER
 
 // Loop detection threshold (frames)
 #define DMX_LOOP_JUMP_FRAMES  150     // 5 seconds @ 30fps

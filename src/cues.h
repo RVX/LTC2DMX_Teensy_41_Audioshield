@@ -1,37 +1,281 @@
-﻿#pragma once
+#pragma once
 
-// Built-in fallback cue list (2-channel, single address).
-// Used only when no CUES.CSV is found on the SD card.
-// Compose your real cues live and export with the serial "e" command.
+// Built-in cue list for 00:31:59:29 movie (7-channel RGB PAR).
+// Warm white 3000K approx R:255 G:180 B:80
 //
-// Format: { HH, MM, SS, FF, fadeMs, { {channel, value}, ... }, numChannels }
-//   fadeMs = 0  -> instant snap
-//   fadeMs > 0  -> linear fade in milliseconds
-//   Cues MUST be in ascending timecode order.
+// Channel map:  1=Master  2=Red  3=Green  4=Blue  5=Strobe  6=Mode  7=Speed
+// Format: { HH, MM, SS, FF, fadeMs, { {ch,val}, ... }, numChannels }
 
 #include "dmx_controller.h"
 #include "../include/config.h"
 
+// Shorthand for warm-white at a given intensity (0-255 = master dim)
+// R/G/B stay at fixed ratio; master scales overall brightness
+#define WW(master, strobe) \
+    { {DMX_CH_MASTER,(master)}, {DMX_CH_RED,255}, {DMX_CH_GREEN,180}, \
+      {DMX_CH_BLUE,80}, {DMX_CH_STROBE,(strobe)}, {DMX_CH_MODE,0}, {DMX_CH_SPEED,0} }, 7
+
 static const DMXCue CUE_LIST[] = {
 
-    // 00:00:00:00  Blackout at loop start (snap)
-    { 0, 0, 0, 0,
-      /*fade*/ 0,
-      { {DMX_CH_INTENSITY, 0}, {DMX_CH_STROBE, 0} },
-      2 },
+    // ===================================================================
+    //  OPENING - Fade from black (0:00 - 0:30)
+    // ===================================================================
 
-    // 00:00:10:00  Slow fade in to 50%
-    { 0, 0, 10, 0,
-      /*fade*/ 3000,
-      { {DMX_CH_INTENSITY, 128}, {DMX_CH_STROBE, 0} },
-      2 },
+    // 00:00:00:00  Blackout at loop start
+    { 0, 0, 0, 0,   0,    WW(0, 0) },
 
-    // 00:31:50:00  Slow fade to blackout before loop point (9 s)
-    { 0, 31, 50, 0,
-      /*fade*/ 9000,
-      { {DMX_CH_INTENSITY, 0}, {DMX_CH_STROBE, 0} },
-      2 },
+    // 00:00:03:00  Slow fade in to dim warm (8 sec fade)
+    { 0, 0, 3, 0,   8000, WW(60, 0) },
+
+    // 00:00:15:00  Continue rising to medium (7 sec)
+    { 0, 0, 15, 0,  7000, WW(160, 0) },
+
+    // 00:00:28:00  Arrive at full warm white (5 sec)
+    { 0, 0, 28, 0,  5000, WW(255, 0) },
+
+    // ===================================================================
+    //  SETTLE - Hold steady (0:30 - 3:00)
+    // ===================================================================
+
+    // 00:01:30:00  Very gentle dim to 220 (breathing starts)
+    { 0, 1, 30, 0,  4000, WW(220, 0) },
+
+    // ===================================================================
+    //  FIRST BREATHING CYCLE (3:00 - 6:00)
+    // ===================================================================
+
+    // 00:03:00:00  Breathe down
+    { 0, 3, 0, 0,   6000, WW(120, 0) },
+
+    // 00:03:15:00  Breathe up
+    { 0, 3, 15, 0,  6000, WW(240, 0) },
+
+    // 00:03:40:00  Breathe down
+    { 0, 3, 40, 0,  5000, WW(100, 0) },
+
+    // 00:04:00:00  Breathe up
+    { 0, 4, 0, 0,   5000, WW(230, 0) },
+
+    // 00:04:30:00  Breathe down deeper
+    { 0, 4, 30, 0,  6000, WW(70, 0) },
+
+    // 00:05:00:00  Breathe back up
+    { 0, 5, 0, 0,   7000, WW(255, 0) },
+
+    // ===================================================================
+    //  BUILD-UP - Slow pulse with increasing tension (6:00 - 10:00)
+    // ===================================================================
+
+    // 00:06:00:00  Drop to low
+    { 0, 6, 0, 0,   4000, WW(80, 0) },
+
+    // 00:06:15:00  Snap back to bright
+    { 0, 6, 15, 0,  1000, WW(255, 0) },
+
+    // 00:06:45:00  Slow fade down
+    { 0, 6, 45, 0,  8000, WW(50, 0) },
+
+    // 00:07:30:00  Rise steadily
+    { 0, 7, 30, 0,  6000, WW(200, 0) },
+
+    // 00:08:00:00  Hold medium
+    { 0, 8, 0, 0,   3000, WW(180, 0) },
+
+    // 00:08:30:00  Quick pulse up
+    { 0, 8, 30, 0,  1500, WW(255, 0) },
+
+    // 00:09:00:00  Back to medium
+    { 0, 9, 0, 0,   3000, WW(160, 0) },
+
+    // 00:09:30:00  Slow dim
+    { 0, 9, 30, 0,  5000, WW(100, 0) },
+
+    // ===================================================================
+    //  DRAMATIC PEAK 1 - First accent moment (10:00 - 13:00)
+    // ===================================================================
+
+    // 00:10:00:00  Sharp rise to full
+    { 0, 10, 0, 0,  800,  WW(255, 0) },
+
+    // 00:10:10:00  Quick drop to near-black
+    { 0, 10, 10, 0, 500,  WW(20, 0) },
+
+    // 00:10:12:00  Flash back up
+    { 0, 10, 12, 0, 300,  WW(255, 0) },
+
+    // 00:10:15:00  Settle to medium
+    { 0, 10, 15, 0, 3000, WW(180, 0) },
+
+    // 00:11:00:00  Slow breathing down
+    { 0, 11, 0, 0,  6000, WW(90, 0) },
+
+    // 00:11:30:00  Rise
+    { 0, 11, 30, 0, 5000, WW(200, 0) },
+
+    // 00:12:00:00  Hold steady
+    { 0, 12, 0, 0,  3000, WW(220, 0) },
+
+    // 00:12:30:00  Gentle dim
+    { 0, 12, 30, 0, 5000, WW(140, 0) },
+
+    // ===================================================================
+    //  SLOW STROBE SECTION (13:00 - 15:00) - subtle flicker
+    // ===================================================================
+
+    // 00:13:00:00  Build up with very slow strobe (ch5=10, barely visible)
+    { 0, 13, 0, 0,  2000, WW(200, 10) },
+
+    // 00:13:30:00  Increase strobe slightly
+    { 0, 13, 30, 0, 2000, WW(230, 25) },
+
+    // 00:14:00:00  Medium strobe
+    { 0, 14, 0, 0,  1000, WW(255, 50) },
+
+    // 00:14:20:00  Strobe off, drop intensity
+    { 0, 14, 20, 0, 1500, WW(160, 0) },
+
+    // 00:14:40:00  Rise back calm
+    { 0, 14, 40, 0, 4000, WW(220, 0) },
+
+    // ===================================================================
+    //  CALM MIDDLE - Warm steady glow (15:00 - 19:00)
+    // ===================================================================
+
+    // 00:15:00:00  Settle to comfortable level
+    { 0, 15, 0, 0,  5000, WW(200, 0) },
+
+    // 00:16:00:00  Very gentle breathe down
+    { 0, 16, 0, 0,  8000, WW(150, 0) },
+
+    // 00:17:00:00  Breathe up
+    { 0, 17, 0, 0,  8000, WW(230, 0) },
+
+    // 00:18:00:00  Breathe down
+    { 0, 18, 0, 0,  7000, WW(170, 0) },
+
+    // 00:18:30:00  Breathe up
+    { 0, 18, 30, 0, 6000, WW(240, 0) },
+
+    // ===================================================================
+    //  SECOND BREATHING CYCLE - Deeper (19:00 - 23:00)
+    // ===================================================================
+
+    // 00:19:00:00  Drop lower
+    { 0, 19, 0, 0,  5000, WW(80, 0) },
+
+    // 00:19:30:00  Slow rise
+    { 0, 19, 30, 0, 7000, WW(200, 0) },
+
+    // 00:20:15:00  Deep drop
+    { 0, 20, 15, 0, 5000, WW(40, 0) },
+
+    // 00:20:45:00  Rise to full
+    { 0, 20, 45, 0, 6000, WW(255, 0) },
+
+    // 00:21:30:00  Breathe down
+    { 0, 21, 30, 0, 6000, WW(110, 0) },
+
+    // 00:22:00:00  Breathe up
+    { 0, 22, 0, 0,  5000, WW(220, 0) },
+
+    // 00:22:30:00  Gentle settle
+    { 0, 22, 30, 0, 4000, WW(180, 0) },
+
+    // ===================================================================
+    //  INTENSITY BUILD - Climax (23:00 - 27:00)
+    // ===================================================================
+
+    // 00:23:00:00  Start building
+    { 0, 23, 0, 0,  3000, WW(140, 0) },
+
+    // 00:23:30:00  Keep rising
+    { 0, 23, 30, 0, 4000, WW(200, 0) },
+
+    // 00:24:00:00  Full bright
+    { 0, 24, 0, 0,  2000, WW(255, 0) },
+
+    // 00:24:15:00  Sharp drop
+    { 0, 24, 15, 0, 600,  WW(30, 0) },
+
+    // 00:24:17:00  Snap back up
+    { 0, 24, 17, 0, 400,  WW(255, 0) },
+
+    // 00:24:30:00  Slow settle
+    { 0, 24, 30, 0, 4000, WW(200, 0) },
+
+    // 00:25:00:00  Build again
+    { 0, 25, 0, 0,  3000, WW(255, 0) },
+
+    // 00:25:30:00  Quick flicker (strobe)
+    { 0, 25, 30, 0, 500,  WW(255, 40) },
+
+    // 00:25:35:00  Strobe off
+    { 0, 25, 35, 0, 500,  WW(255, 0) },
+
+    // 00:26:00:00  Drop to medium
+    { 0, 26, 0, 0,  3000, WW(160, 0) },
+
+    // 00:26:30:00  Rise
+    { 0, 26, 30, 0, 4000, WW(230, 0) },
+
+    // ===================================================================
+    //  FLICKER SEQUENCE (27:00 - 29:30) - tension before end
+    // ===================================================================
+
+    // 00:27:00:00  Begin flickering - drop
+    { 0, 27, 0, 0,  1000, WW(60, 0) },
+
+    // 00:27:05:00  Flash
+    { 0, 27, 5, 0,  500,  WW(255, 0) },
+
+    // 00:27:10:00  Drop
+    { 0, 27, 10, 0, 800,  WW(40, 0) },
+
+    // 00:27:15:00  Flash
+    { 0, 27, 15, 0, 400,  WW(230, 0) },
+
+    // 00:27:20:00  Drop
+    { 0, 27, 20, 0, 600,  WW(80, 0) },
+
+    // 00:27:30:00  Slow rise back
+    { 0, 27, 30, 0, 5000, WW(200, 0) },
+
+    // 00:28:00:00  Subtle slow strobe
+    { 0, 28, 0, 0,  2000, WW(220, 15) },
+
+    // 00:28:30:00  Strobe off, hold
+    { 0, 28, 30, 0, 2000, WW(200, 0) },
+
+    // 00:29:00:00  One last bright moment
+    { 0, 29, 0, 0,  3000, WW(255, 0) },
+
+    // 00:29:20:00  Start final flicker
+    { 0, 29, 20, 0, 800,  WW(120, 0) },
+
+    // 00:29:25:00  Flash
+    { 0, 29, 25, 0, 400,  WW(255, 0) },
+
+    // 00:29:30:00  Settle to medium
+    { 0, 29, 30, 0, 2000, WW(180, 0) },
+
+    // ===================================================================
+    //  ENDING - Fade to black (30:00 - 31:59)
+    // ===================================================================
+
+    // 00:30:00:00  Begin long fade out (15 sec)
+    { 0, 30, 0, 0,  15000, WW(40, 0) },
+
+    // 00:30:30:00  Continue to near-black (10 sec)
+    { 0, 30, 30, 0, 10000, WW(10, 0) },
+
+    // 00:31:00:00  Final fade to blackout (8 sec)
+    { 0, 31, 0, 0,  8000, WW(0, 0) },
+
+    // 00:31:50:00  Ensure blackout (safety cue, snap)
+    { 0, 31, 50, 0, 0,    WW(0, 0) },
 
 };  // END CUE_LIST
+
+#undef WW
 
 static const uint16_t CUE_COUNT = sizeof(CUE_LIST) / sizeof(CUE_LIST[0]);

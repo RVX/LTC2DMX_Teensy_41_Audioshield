@@ -6,19 +6,29 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 LTCDecoder::LTCDecoder()
-    : _prevSample(0)
-    , _samplesPerBit(LTC_SAMPLES_PER_BIT)
-    , _halfBit(LTC_SAMPLES_PER_BIT * 0.5f)
+    : _samplesPerBit(LTC_SAMPLES_PER_BIT)
     , _sampleCount(0.0f)
     , _polarity(0)
     , _bitCount(0)
-    , _inSync(false)
     , _frameReady(false)
     , _totalBits(0)
+    , _zcResets(0)
     , _expectMidBit(false)
 {
     memset(_bitBuffer, 0, sizeof(_bitBuffer));
     _timecode.clear();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+void LTCDecoder::resync()
+{
+    _frameReady   = false;
+    _bitCount     = 0;
+    _expectMidBit = false;
+    _sampleCount  = 0.0f;
+    _polarity     = 0;
+    memset(_bitBuffer, 0, sizeof(_bitBuffer));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -45,9 +55,11 @@ void LTCDecoder::processSamples(const int16_t* samples, uint16_t count)
             _sampleCount = 0.0f;
         } else {
             _sampleCount += 1.0f;
+            // Cap to prevent float precision loss during extended silence.
+            // Anything > 1.5× bit-period triggers a dropout reset on next crossing anyway.
+            if (_sampleCount > _samplesPerBit * 2.0f)
+                _sampleCount = _samplesPerBit * 2.0f;
         }
-
-        _prevSample = s;
     }
 }
 
@@ -66,6 +78,7 @@ void LTCDecoder::_handleCrossing(float intervalSamples)
 {
     // Intervals > 1.5 bit-periods are signal dropouts — hard reset
     if (intervalSamples > _samplesPerBit * 1.5f) {
+        _zcResets++;
         _expectMidBit = false;
         return;
     }
@@ -106,7 +119,7 @@ void LTCDecoder::_pushBit(uint8_t bit)
 
     // Check for sync word when we have at least 80 bits
     if (_bitCount == 80) {
-        if (_checkSyncWord()) {
+        if (!_frameReady && _checkSyncWord()) {
             _decodeFrame();
             _frameReady = true;
         }
@@ -150,5 +163,14 @@ void LTCDecoder::_decodeFrame()
     _timecode.hours     = bitsToInt(_bitBuffer,48, 4) + bitsToInt(_bitBuffer, 56, 2) * 10;
     _timecode.dropFrame = (_bitBuffer[10] == 1);
     _timecode.colorFrame= (_bitBuffer[11] == 1);
-    _timecode.valid     = true;
+
+    // Reject out-of-range BCD values caused by false-positive sync detections
+    if (_timecode.hours   >= 24 ||
+        _timecode.minutes >= 60 ||
+        _timecode.seconds >= 60 ||
+        _timecode.frames  >= LTC_FRAMERATE) {
+        _timecode.valid = false;
+        return;
+    }
+    _timecode.valid = true;
 }
