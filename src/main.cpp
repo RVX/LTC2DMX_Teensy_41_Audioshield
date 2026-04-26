@@ -357,10 +357,27 @@ void setup()
     // -- DMX sender ------------------------------------------------------------
     dmxCtrl.begin();
 
+#ifdef ENABLE_DISPLAY
+    // -- DMX cue display callback ---------------------------------------------
+    dmxCtrl.setCueCallback([](uint16_t idx, const DMXCue& cue) {
+        char msg[22];
+        // "CUE999 HH:MM:SS:FF" = 21 chars, fits in the 22-char display buffer
+        snprintf(msg, sizeof(msg), "CUE%-3u %02u:%02u:%02u:%02u",
+                 (unsigned)(idx > 999 ? 999 : idx),
+                 (unsigned)cue.hours, (unsigned)cue.minutes,
+                 (unsigned)cue.seconds, (unsigned)cue.frames);
+        ltcDisplay.pushMessage(msg);
+    });
+#endif
+
     // -- Banner ----------------------------------------------------------------
     Serial.println("-----------------------------------------");
     Serial.println("  Teensy 4.1  LTC + DMX  Live Compose");
     Serial.println("-----------------------------------------");
+    Serial.printf ("  Build  : %s %s  [%s%s]\n",
+                   FIRMWARE_BUILD_DATE, FIRMWARE_BUILD_TIME,
+                   FIRMWARE_GIT_REV,
+                   FIRMWARE_DIRTY ? "*" : "");
     Serial.printf ("  Codec  : %s\n", codecOK ? "OK" : "FAILED");
     Serial.printf ("  FPS    : %u\n", LTC_FRAMERATE);
     Serial.printf ("  Cues   : %u  (%s)\n",
@@ -378,6 +395,13 @@ void setup()
     } else {
         Serial.println("  OLED   : OK (0x3C)");
         ltcDisplay.pushMessage("LTC+DMX Live Compose");
+        // Show git rev + build date on OLED so you can read it off the board
+        char verMsg[22];
+        snprintf(verMsg, sizeof(verMsg), "%.7s%s %s",
+                 FIRMWARE_GIT_REV,
+                 FIRMWARE_DIRTY ? "*" : "",
+                 FIRMWARE_BUILD_DATE + 5);  // "MM-DD" (skip year)
+        ltcDisplay.pushMessage(verMsg);
         ltcDisplay.pushMessage(codecOK ? "Codec: OK" : "Codec: FAILED");
         ltcDisplay.update();
     }
@@ -595,6 +619,28 @@ void loop()
                 AudioMemoryUsageMax(),
                 AUDIO_MEMORY_BLOCKS,
                 AudioProcessorUsage());
+            Serial.printf("[DMX]  %s  DIM:%-3u R:%-3u G:%-3u B:%-3u  STR:%-3u MOD:%-3u SPD:%-3u\n",
+                liveMode ? "LIVE" : "PLAY",
+                liveMode ? (unsigned)255          : (unsigned)dmxCtrl.getChannel(DMX_CH_MASTER),
+                liveMode ? (unsigned)liveI        : (unsigned)dmxCtrl.getChannel(DMX_CH_RED),
+                liveMode ? (unsigned)liveI        : (unsigned)dmxCtrl.getChannel(DMX_CH_GREEN),
+                liveMode ? (unsigned)liveI        : (unsigned)dmxCtrl.getChannel(DMX_CH_BLUE),
+                liveMode ? (unsigned)liveS        : (unsigned)dmxCtrl.getChannel(DMX_CH_STROBE),
+                liveMode ? (unsigned)0            : (unsigned)dmxCtrl.getChannel(DMX_CH_MODE),
+                liveMode ? (unsigned)0            : (unsigned)dmxCtrl.getChannel(DMX_CH_SPEED));
+            if (!liveMode) {
+                int16_t  curIdx = dmxCtrl.getLastCueIndex();
+                uint16_t total  = dmxCtrl.getCueCount();
+                const DMXCue* nc = dmxCtrl.getCue((uint16_t)(curIdx + 1));
+                if (nc)
+                    Serial.printf("[CUE]  %d/%u  NEXT: %02u:%02u:%02u:%02u\n",
+                                  (int)(curIdx + 1), (unsigned)total,
+                                  (unsigned)nc->hours, (unsigned)nc->minutes,
+                                  (unsigned)nc->seconds, (unsigned)nc->frames);
+                else
+                    Serial.printf("[CUE]  %d/%u  NEXT: ---END---\n",
+                                  (int)(curIdx + 1), (unsigned)total);
+            }
             frameSkips = 0;
             tcJumps    = 0;
             ltcDecoder.resetZcResets();
@@ -604,6 +650,35 @@ void loop()
 
 #ifdef ENABLE_DISPLAY
     {
+        ltcDisplay.setModeAndMaster(liveMode,
+                             liveMode ? liveI : dmxCtrl.getChannel(DMX_CH_MASTER));
+        {
+            uint8_t dmxVals[7];
+            if (liveMode) {
+                dmxVals[0] = 255;   // CH1 master always full in LIVE
+                dmxVals[1] = liveI; // CH2 R
+                dmxVals[2] = liveI; // CH3 G
+                dmxVals[3] = liveI; // CH4 B
+                dmxVals[4] = liveS; // CH5 strobe
+                dmxVals[5] = 0;     // CH6 mode = manual RGB
+                dmxVals[6] = 0;     // CH7 speed
+            } else {
+                for (uint8_t i = 0; i < 7; ++i)
+                    dmxVals[i] = dmxCtrl.getChannel(DMX_CH_MASTER + i);
+            }
+            ltcDisplay.setDMXChannels(dmxVals);
+        }
+        {
+            int16_t  curIdx = dmxCtrl.getLastCueIndex();
+            uint16_t total  = dmxCtrl.getCueCount();
+            const DMXCue* nc = dmxCtrl.getCue((uint16_t)(curIdx + 1));
+            if (nc)
+                ltcDisplay.setCueInfo(curIdx, total,
+                                      nc->hours, nc->minutes,
+                                      nc->seconds, nc->frames, true);
+            else
+                ltcDisplay.setCueInfo(curIdx, total, 0, 0, 0, 0, false);
+        }
         ltcDisplay.setStatus(ltcPresent, s_audioLevel,
                              AudioMemoryUsage(), AudioMemoryUsageMax(),
                              AudioProcessorUsage(),
