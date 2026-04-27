@@ -42,9 +42,20 @@
 static const DMXCue CUE_LIST[] = {
 
     // ── OPENING: black → first whisper ──────────────────────────────────────
-    { 0,  0,  0, 0,      0, V(  0, 0) },   // 0:00:00  hard black
-    { 0,  0, 10, 0,  15000, V( 18, 0) },   // 0:00:10  15s first breath to 7% (→ 0:00:25)
-    { 0,  0, 25, 0,  30000, V(  8, 0) },   // 0:00:25  30s fall to near-black (→ 0:00:55)
+    // ── OPENING STRIKE  0:00:00 – 0:00:55 ──────────────────────────────────
+    //   Four descending hard pulses into near-black — fast contrast shock.
+    //   Each burst: 1–2s snap up, 4–7s drop back to dark.
+    //   Resolves into silence before the sea-breath begins.
+
+    { 0,  0,  0, 0,      0, V(  0, 0) },   // hard black
+    { 0,  0,  1, 0,   1500, V(210, 0) },   // 1.5s snap → 82% (first strike)
+    { 0,  0,  2, 0,   4000, V(  5, 0) },   // 4s drop → near-black (→ 0:00:06)
+    { 0,  0,  6, 0,   1500, V(175, 0) },   // 1.5s snap → 69% (second strike)
+    { 0,  0,  8, 0,   5000, V(  5, 0) },   // 5s drop → near-black (→ 0:00:13)
+    { 0,  0, 13, 0,   2000, V(138, 0) },   // 2s snap → 54% (third, decaying)
+    { 0,  0, 15, 0,   6000, V(  5, 0) },   // 6s drop → near-black (→ 0:00:21)
+    { 0,  0, 21, 0,   2500, V( 95, 0) },   // 2.5s snap → 37% (fourth, faint echo)
+    { 0,  0, 24, 0,  31000, V(  5, 0) },   // 31s very slow decay to dark (→ 0:00:55)
 
     // ── AWAKENING  0:00:55 – 5:15  (range 8–82) ─────────────────────────────
 
