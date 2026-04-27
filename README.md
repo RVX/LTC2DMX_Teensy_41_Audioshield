@@ -123,11 +123,26 @@ pio device monitor
 │   ├── cues_albedo.h         # Albedo composition (43 min, 25 fps)
 │   ├── cues_control_burn.h   # Controlled Burn composition (32 min, 30 fps)
 │   └── cues.h                # Legacy fallback (unused)
+├── lumaplots/                # Per-second luma analysis plots (sequential)
+│   └── albedo_luma06.png     # DMX arc vs. film luma — current version
+├── analyze_movie_luma.py     # Generates luma CSVs and lumaplots/ PNGs
 ├── test_cues_albedo.csv      # Short test sequence for Albedo (SD-card format)
 ├── test_cues_control_burn.csv# Short test sequence for Controlled Burn
 ├── scripts/
 │   └── inject_version.py     # Git hash + build timestamp injected at compile time
 └── platformio.ini
+```
+
+### Luma Analysis
+
+The DMX cue arcs are designed from per-second **p95 spatial luma** extracted from the source film (32×18 grid). The lamp counterpoints the film: bright when the film is dark, dark when the film is bright.
+
+![Albedo luma analysis](lumaplots/albedo_luma06.png)
+
+Regenerate after editing cues:
+
+```bash
+python analyze_movie_luma.py --comp albedo --output lumaplots/albedo_luma06.png --apex 1380
 ```
 
 ### Dependencies
