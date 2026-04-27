@@ -420,6 +420,109 @@ if (diff >= 9 && diff <= 12) {
 
 ---
 
+## Video Luma Analysis — Cue Composition Method
+
+The lighting cue arc for each composition is informed by a per-second luminance
+analysis of the corresponding film. This maps the film's own brightness structure
+so the lamp can be choreographed against it deliberately.
+
+### Tool
+
+`analyze_movie_luma.py` — runs FFmpeg to decode the video at 1 fps, area-averages
+each frame down to a single luma byte, and produces a CSV + comparison plot.
+
+```bash
+python analyze_movie_luma.py --comp albedo
+python analyze_movie_luma.py --comp controlled_burn
+```
+
+**Outputs** (saved in project root):
+
+| File | Contents |
+|---|---|
+| `albedo_luma.csv` | Per-second: second, timecode, raw Y (0–255), normalised Y |
+| `albedo_luma.png` | Dark-background plot: gold = video luma, blue = current DMX arc |
+| `controlled_burn_luma.csv` | Same for Controlled Burn (32 min, 30 fps) |
+| `controlled_burn_luma.png` | Same plot for Controlled Burn |
+
+**Requirements:** FFmpeg on PATH, Python 3.x, matplotlib.
+
+### How it works
+
+```
+Video file (H.264 .mov)
+  └─ ffmpeg -vf "fps=1, scale=1:1:flags=area, format=gray"
+       └─ 1 byte per second  (Y-luma, Rec.709 limited range 16–235)
+            └─ normalised → 0–255  (direct DMX scale comparison)
+```
+
+`scale=1:1:flags=area` computes the area-weighted mean of the entire frame —
+equivalent to a spatial average luma. One value per second.  
+Rec.709 limited range: 16 = absolute black, 235 = peak white → normalised to
+0–255 to match the DMX master dimmer scale.
+
+### Albedo — film analysis results (v02_260415_Albedo_Correr_Preview.mov)
+
+| Statistic | Value |
+|---|---|
+| Duration | 43:00 (2580 s) |
+| Mean luma | 8.5 / 255 (3%) |
+| Peak luma | **146.7 / 255 (57%)** at 00:37:02 |
+| Darkest second | 00:00:00 (0.0) |
+
+**Character:** The film is almost entirely dark — near-black for long stretches,
+punctuated by brief sharp flares of reflected light (ice surfaces catching the sun).
+The two main bright regions are a sustained cluster around **23:14–23:22** (peak 52%)
+and a second cluster around **36:53–37:45** (film peak 58% at 37:02).
+
+**Bright clusters (luma > 30):**
+
+| Start | End | Peak luma |
+|---|---|---|
+| 09:31 | 09:36 | 33 |
+| 14:05 | 14:40 | 31 |
+| 15:20 | 15:43 | 31 |
+| 17:06 | 17:10 | 30 |
+| 18:31 | 18:53 | 31 |
+| 21:22 | 22:06 | 30 |
+| **22:59** | **23:27** | **133** ← main bright event |
+| 25:14 | 26:37 | 34 |
+| 27:10 | 27:44 | 35 |
+| 35:18 | 35:35 | 107 |
+| **36:53** | **38:33** | **147** ← film's absolute peak |
+
+**Sustained dark valleys (luma < 3, duration ≥ 30 s):**
+
+| Start | End | Duration |
+|---|---|---|
+| 00:00:00 | 00:04:06 | 246 s |
+| 00:04:41 | 00:09:22 | 281 s |
+| 00:09:44 | 00:11:23 | 99 s |
+| 00:27:45 | 00:31:12 | 207 s ← long silence after main climax |
+| 00:35:37 | 00:36:53 | 76 s |
+
+### Compositional strategy — hybrid (Follow + Counterpoint)
+
+The lamp responds to the film in two opposite modes depending on the film's state:
+
+**FOLLOW** — when the film has bright content (ice flares, reflections):
+- DMX arc rises *with* the film's luma spikes — reinforces the brightness event
+- The lamp amplifies reflected light in the room when the image itself radiates
+- Main events to follow: 22:59–23:27, 35:18–35:35, 36:53–38:33
+
+**COUNTERPOINT** — when the film is dark (sustained near-black valleys):
+- DMX arc holds a warm floor or gently breathes — lamp glows when image is absent
+- The room carries light when the glacier is in shadow
+- Applies to the long dark sections: 0:00–4:06, 4:41–9:22, 27:45–31:12
+
+**Apex rule:** The DMX apex should be anchored to the film's own brightest moment
+(**37:02** for Albedo), or intentionally displaced from it for dramatic contrast.
+The current `cues_albedo.h` places the DMX apex at **27:58** — this is a
+counterpoint choice: the lamp peaks while the film is still relatively dark,
+before the film's own climax arrives.
+
+---
+
 ## License
 
 MIT
