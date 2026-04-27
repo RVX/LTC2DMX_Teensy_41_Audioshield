@@ -276,33 +276,74 @@ SD card workflow:
 
 ## OLED Display
 
-The SSD1306 128×64 display at I2C 0x3C is divided into five zones:
+The SSD1306 128×64 display at I2C 0x3C is divided into five zones (y positions are exact pixel offsets from the code):
 
 ```
 ┌────────────────────────────────┐
-│  00:01:23:15                   │  ← row 0  large text (size-2)
-│  ▶ PLAY  LTC:OK  ████████░░░  │  ← row 1  icon · mode · status · level bar
-├────────────────────────────────┤
-│ >CUE7  00:10:30:00             │  ← row 2  scrolling event log (latest)
-│  C:7/69 N:00:12:00:00         │  ← row 3  cue position (PLAY mode only)
-├────────────────────────────────┤
-│  DIM255 R0   G0   B0          │  ← DMX CH1–4
-│  STR0   MOD0   SPD0           │  ← DMX CH5–7
+│  00:01:23:15                   │  ← y=0   timecode, size-2 (16 px tall)
+│  ▶ PLAY  LTC:OK  ████████░░░  │  ← y=17  icon · mode · LTC status · level bar
+├────────────────────────────────┤  ←       divider line at y=25
+│ >CUE7  00:10:30:00             │  ← y=29  latest event message
+│  C:7/69 N:00:12:00:00         │  ← y=38  cue position (PLAY mode only)
+├────────────────────────────────┤  ←       divider line at y=46
+│  DIM255 R0   G0   B0          │  ← y=48  DMX CH1–4 values
+│  STR0   MOD0   SPD0           │  ← y=57  DMX CH5–7 values
 └────────────────────────────────┘
 ```
 
-**No signal** — row 0 shows a full-width inverted white bar with `NO LTC IN` in large black text (size-2, centred).
+### Timecode row (y=0)
 
-**Signal present** — row 0 shows the live timecode `HH:MM:SS:FF` (or `HH:MM:SS;FF` for drop-frame), all digits on the same baseline.
+**No signal** — full-width inverted white bar with `NO LTC IN` in large black text, centred.
 
-- **▶ icon** blinks on every decoded frame when LTC is locked; becomes a solid **■** when signal is lost.
-- **PLAY / LIVE** label shows the current operating mode.
-- **LTC:OK / LTC:--** updates in real time.
-- **Level bar** (right of row 1) reflects the real-time LINE IN peak amplitude — 46 px wide, proportional to signal strength.
-- **Event log** (row 2) shows the most recent event: cue fires (`CUE7 00:10:30:00`), mode changes, `LTC acquired`, `LTC LOST`, skip/jump warnings.
-- **Cue row** (row 3) is visible only in PLAY mode. Shows `C:N/T N:HH:MM:SS:FF` (current cue out of total, next cue trigger TC). Switches to `C:N/T  END OF SHOW` after the last cue fires.
-- **DMX rows** show the raw channel values being sent: `DIM` (CH1 master), `R/G/B` (CH2–4), `STR` (CH5 strobe), `MOD`/`SPD` (CH6–7 effects). For the Varytec 2-channel fixture only `DIM` and `STR` are ever non-zero.
-- Display is disabled automatically if the codec fails to initialise.
+**Signal present** — live timecode `HH:MM:SS:FF`. Drop-frame sources use a semicolon separator: `HH:MM:SS;FF`. Each digit is placed individually so all characters share the same baseline at size-2.
+
+### Status row (y=17)
+
+`▶ PLAY  LTC:OK  ████████░░░`
+
+| Element | Position | Meaning |
+|---|---|---|
+| **▶** (triangle) | x=0 | Blinks on every decoded frame when LTC is locked |
+| **■** (square) | x=0 | Solid when LTC signal is absent |
+| **PLAY** / **LIVE** | x=10 | Current operating mode |
+| **LTC:OK** / **LTC:--** | x=40 | Real-time lock status |
+| Level bar | x=80, 46 px wide | LINE IN peak amplitude — fills left-to-right proportionally |
+
+### Event log (y=29)
+
+One line prefixed with `>`. Shows the most recent event pushed to the log:
+
+| Message | Trigger |
+|---|---|
+| `LTC acquired` | First valid frame decoded after silence |
+| `LTC LOST` | No LTC for `LTC_LOSS_TIMEOUT_MS` (default 1 s) |
+| `CUE7  00:10:30:00` | Cue index 7 fired at that timecode |
+| `skip +N @ HH:MM:SS:FF` | Frame-skip warning (N frames missed) |
+| `TC jump HH:MM:SS:FF` | Timecode non-sequential jump detected |
+| `>> PLAY MODE` / `>> LIVE MODE` | Mode toggled via `p` key |
+
+### Cue row (y=38) — PLAY mode only
+
+Hidden in LIVE mode. Three states:
+
+| Display | Meaning |
+|---|---|
+| `C:--/69 N:00:10:30:00` | Before first cue; shows total count and next cue TC |
+| `C:7/69 N:00:12:00:00` | Cue 7 of 69 active; next cue triggers at `00:12:00:00` |
+| `C:69/69  END OF SHOW` | Last cue has fired |
+
+### DMX rows (y=48 and y=57)
+
+Raw values sent to the DMX universe, updated every frame:
+
+| Row | Format | Channels |
+|---|---|---|
+| Top | `DIM255 R0   G0   B0  ` | CH1 master dimmer, CH2 red, CH3 green, CH4 blue |
+| Bottom | `STR0   MOD0   SPD0   ` | CH5 strobe, CH6 mode, CH7 speed |
+
+For the **Varytec 2-channel fixture** only `DIM` (CH1) and `STR` (CH2) are ever non-zero — `R/G/B/MOD/SPD` will always read `0`.
+
+> Display is disabled automatically if the audio codec fails to initialise.
 
 ---
 
