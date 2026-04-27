@@ -281,13 +281,13 @@ The SSD1306 128×64 display at I2C 0x3C is divided into five zones (y positions 
 ```
 ┌────────────────────────────────┐
 │  00:01:23:15                   │  ← y=0   timecode, size-2 (16 px tall)
-│  ▶ PLAY  LTC:OK  ████████░░░  │  ← y=17  icon · mode · LTC status · level bar
+│  ▶ PLAY  LTC:OK  ████████░░░   │  ← y=17  icon · mode · LTC status · level bar
 ├────────────────────────────────┤  ←       divider line at y=25
 │ >CUE7  00:10:30:00             │  ← y=29  latest event message
-│  C:7/69 N:00:12:00:00         │  ← y=38  cue position (PLAY mode only)
+│  C:7/69 N:00:12:00:00          │  ← y=38  cue position (PLAY mode only)
 ├────────────────────────────────┤  ←       divider line at y=46
-│  DIM255 R0   G0   B0          │  ← y=48  DMX CH1–4 values
-│  STR0   MOD0   SPD0           │  ← y=57  DMX CH5–7 values
+│  DIM255 R0   G0   B0           │  ← y=48  DMX CH1–4 values
+│  STR0   MOD0   SPD0            │  ← y=57  DMX CH5–7 values
 └────────────────────────────────┘
 ```
 
