@@ -49,19 +49,31 @@ void DMXController::update(uint8_t h, uint8_t m, uint8_t s, uint8_t f)
     int16_t cueIdx = _findCue(totalFrames);
 
     if (cueIdx != _lastCueIndex && cueIdx >= 0) {
+        const DMXCue& nextCue = _cues[cueIdx];
+
+        // Capture current CH1 value BEFORE applying (for direction display)
+        uint8_t fromDim = _dmxState[DMX_CH_MASTER];
+        uint8_t toDim   = fromDim;
+        for (uint8_t i = 0; i < nextCue.numChannels; ++i) {
+            if (nextCue.channels[i].channel == DMX_CH_MASTER) {
+                toDim = nextCue.channels[i].value;
+                break;
+            }
+        }
+        const char* dir = (toDim > fromDim + 5) ? "^UP  "
+                        : (toDim + 5 < fromDim) ? "vDIP "
+                        :                         "~hld ";
+        Serial.printf("[CUE] %3d/%-3u  %02u:%02u:%02u  DIM:%3u->%-3u  %2us %s\n",
+                      (int)(cueIdx + 1), (unsigned)_cueCount,
+                      (unsigned)nextCue.hours, (unsigned)nextCue.minutes,
+                      (unsigned)nextCue.seconds,
+                      (unsigned)fromDim, (unsigned)toDim,
+                      (unsigned)(nextCue.fadeMs / 1000),
+                      dir);
+
         _lastCueIndex = cueIdx;
-        _applyCue(_cues[cueIdx]);
-
-        Serial.print("DMX: cue ");
-        Serial.print(cueIdx);
-        Serial.print(" @ ");
-        Serial.printf("%02u:%02u:%02u:%02u\n",
-                      _cues[cueIdx].hours,
-                      _cues[cueIdx].minutes,
-                      _cues[cueIdx].seconds,
-                      _cues[cueIdx].frames);
-
-        if (_cueCb) _cueCb((uint16_t)cueIdx, _cues[cueIdx]);
+        _applyCue(nextCue);
+        if (_cueCb) _cueCb((uint16_t)cueIdx, nextCue);
     }
 }
 
