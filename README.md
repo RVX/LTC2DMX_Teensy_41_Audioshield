@@ -276,43 +276,33 @@ SD card workflow:
 
 ## OLED Display
 
-The SSD1306 128x64 display at I2C 0x3C is divided into five zones:
+The SSD1306 128×64 display at I2C 0x3C is divided into five zones:
 
 ```
-+----------------------------------------------------------------+
-| Row 0 (y=0, 16 px, large text)                                 |
-| 00:02:01:09      <- SMPTE timecode HH:MM:SS:FF                 |
-| If no LTC: full inverted bar  [ NO LTC IN ]                    |
-+----------------------------------------------------------------+
-| Row 1 (y=17, small text)                                       |
-| [>] PLAY  LTC:OK  [====      ]  <- icon/mode/status/level bar |
-|  |    |     |      level bar (46 px, proportional to signal)  |
-|  |    |     +-- LTC:OK  or  LTC:--                            |
-|  |    +-------- PLAY  or  LIVE                                |
-|  +------------- blinking triangle = LTC locked                |
-|                 solid square     = LTC lost                   |
-+----------------------------------------------------------------+
-| Row 2 (y=29)   -- latest event message                        |
-| >CUE7  00:10:30:00   <- cue fires, mode changes, errors       |
-+----------------------------------------------------------------+
-| Row 3 (y=38)   -- PLAY mode only, hidden in LIVE mode         |
-| C:7/69 N:00:12:00:00   <- cur cue / total, next cue TC       |
-| C:69/69  END OF SHOW   <- after last cue fires               |
-+----------------------------------------------------------------+
-|  divider  (y=46)                                              |
-| DIM255 R0   G0   B0   <- DMX CH1-4 values                    |
-| STR0   MOD0   SPD0    <- DMX CH5-7 values                    |
-| (Varytec 2-ch: only DIM and STR are ever non-zero)           |
-+----------------------------------------------------------------+
+┌────────────────────────────────┐
+│  00:01:23:15                   │  ← row 0  large text (size-2)
+│  ▶ PLAY  LTC:OK  ████████░░░  │  ← row 1  icon · mode · status · level bar
+├────────────────────────────────┤
+│ >CUE7  00:10:30:00             │  ← row 2  scrolling event log (latest)
+│  C:7/69 N:00:12:00:00         │  ← row 3  cue position (PLAY mode only)
+├────────────────────────────────┤
+│  DIM255 R0   G0   B0          │  ← DMX CH1–4
+│  STR0   MOD0   SPD0           │  ← DMX CH5–7
+└────────────────────────────────┘
 ```
 
-| Zone | Content | Notes |
-|---|---|---|
-| **Timecode** | `HH:MM:SS:FF` | Large text. Inverted bar with `NO LTC IN` when signal absent |
-| **Mode bar** | Icon + `LIVE`/`PLAY` + `LTC:OK`/`LTC:--` + level bar | Triangle icon blinks every frame when LTC locked; solid square = no signal |
-| **Event log** | Latest message | Shows cue fires (`CUE7 00:10:30:00`), mode changes, LTC acquired/lost |
-| **Cue row** | `C:N/T N:HH:MM:SS:FF` | Current cue number / total, and TC of the *next* upcoming cue. PLAY mode only |
-| **DMX values** | Raw channel values 0-255 | CH1-4 top row, CH5-7 bottom row. For Varytec 2-ch only DIM (CH1) and STR (CH2) are ever non-zero |
+**No signal** — row 0 shows a full-width inverted white bar with `NO LTC IN` in large black text (size-2, centred).
+
+**Signal present** — row 0 shows the live timecode `HH:MM:SS:FF` (or `HH:MM:SS;FF` for drop-frame), all digits on the same baseline.
+
+- **▶ icon** blinks on every decoded frame when LTC is locked; becomes a solid **■** when signal is lost.
+- **PLAY / LIVE** label shows the current operating mode.
+- **LTC:OK / LTC:--** updates in real time.
+- **Level bar** (right of row 1) reflects the real-time LINE IN peak amplitude — 46 px wide, proportional to signal strength.
+- **Event log** (row 2) shows the most recent event: cue fires (`CUE7 00:10:30:00`), mode changes, `LTC acquired`, `LTC LOST`, skip/jump warnings.
+- **Cue row** (row 3) is visible only in PLAY mode. Shows `C:N/T N:HH:MM:SS:FF` (current cue out of total, next cue trigger TC). Switches to `C:N/T  END OF SHOW` after the last cue fires.
+- **DMX rows** show the raw channel values being sent: `DIM` (CH1 master), `R/G/B` (CH2–4), `STR` (CH5 strobe), `MOD`/`SPD` (CH6–7 effects). For the Varytec 2-channel fixture only `DIM` and `STR` are ever non-zero.
+- Display is disabled automatically if the codec fails to initialise.
 
 ---
 
