@@ -48,24 +48,42 @@ COMPOSITIONS = {
 Y_BLACK = 16
 Y_WHITE = 235
 
+# Frame size for spatial luma sampling.
+# 32×18 = 576 pixels per frame — enough to compute percentiles while staying fast.
+# This captures small bright regions (e.g. glacial specular flares) that the
+# old 1×1 area-average would drown in surrounding darkness.
+FRAME_W = 32
+FRAME_H = 18
+FRAME_BYTES = FRAME_W * FRAME_H   # 576 bytes per frame
+
 # ── 1. FFmpeg luma extraction ───────────────────────────────────────────────
 def extract_luma(movie_path):
     """
-    Scale each frame to 1×1 gray (area-average = mean luma) at 1 fps.
-    Pipes raw bytes — 1 byte per second.  Fast, no regex, no log parsing.
-    Returns list of (second_index, yavg_0_255) tuples.
+    Scale each frame to 32×18 gray at 1 fps, pipe as raw bytes.
+    Per frame (576 px) compute: mean, 95th-percentile, max.
+    Returns list of (second_index, yavg, yp95, ymax) tuples.
     """
+    import numpy as np
     cmd = [
         "ffmpeg", "-hide_banner", "-i", str(movie_path),
-        "-vf", "fps=1,scale=1:1:flags=area,format=gray",
+        "-vf", f"fps=1,scale={FRAME_W}:{FRAME_H}:flags=area,format=gray",
         "-f", "rawvideo", "pipe:1"
     ]
     print(f"→ Decoding {movie_path.name}")
-    print(  "  Extracting 1 luma byte per second via scale=1:1 (~2-4 min)…")
-    proc = subprocess.run(cmd, capture_output=True)   # binary stdout
+    print(f"  Extracting {FRAME_W}x{FRAME_H} gray frames at 1fps — mean + p95 + max per second…")
+    proc = subprocess.run(cmd, capture_output=True)
 
-    raw  = proc.stdout
-    rows = [(i, b) for i, b in enumerate(raw)]
+    raw = proc.stdout
+    n_frames = len(raw) // FRAME_BYTES
+    rows = []
+    for i in range(n_frames):
+        frame = np.frombuffer(raw[i*FRAME_BYTES:(i+1)*FRAME_BYTES], dtype=np.uint8)
+        rows.append((
+            i,
+            float(np.mean(frame)),
+            float(np.percentile(frame, 95)),
+            float(np.max(frame)),
+        ))
     print(f"  → {len(rows)} seconds extracted")
     return rows
 
@@ -139,6 +157,12 @@ def main():
     parser.add_argument("--comp", choices=list(COMPOSITIONS.keys()),
                         default="albedo",
                         help="Which composition to analyse (default: albedo)")
+    parser.add_argument("--output", default=None,
+                        help="Override output PNG filename (relative to project root)")
+    parser.add_argument("--apex", type=int, default=None,
+                        help="Override DMX apex time in seconds (e.g. 1890 for 31:30)")
+    parser.add_argument("--reextract", action="store_true",
+                        help="Force re-extraction from movie even if CSV exists")
     args = parser.parse_args()
 
     cfg       = COMPOSITIONS[args.comp]
@@ -146,34 +170,60 @@ def main():
     CUES_H    = cfg["cues_h"]
     FRAMERATE = cfg["framerate"]
     TOTAL_SEC = cfg["total_sec"]
-    APEX_SEC  = cfg["apex_sec"]
+    APEX_SEC  = args.apex if args.apex is not None else cfg["apex_sec"]
     LABEL     = cfg["label"]
     OUT_CSV   = PROJECT / f"{args.comp}_luma.csv"
-    OUT_PNG   = PROJECT / f"{args.comp}_luma.png"
+    OUT_PNG   = PROJECT / (args.output if args.output else f"{args.comp}_luma.png")
 
-    if not MOVIE.exists():
-        sys.exit(f"ERROR: movie not found:\n  {MOVIE}")
+    # ── Luma extraction (skip if CSV exists unless --reextract) ──────────
+    if OUT_CSV.exists() and not args.reextract:
+        print(f"→ Using existing CSV: {OUT_CSV}")
+        luma_rows = []
+        import csv as _csv
+        with open(OUT_CSV, newline="") as f:
+            reader = _csv.DictReader(f)
+            for row in reader:
+                yavg = float(row["yavg_raw"])
+                yp95 = float(row["yp95_raw"]) if "yp95_raw" in row else yavg
+                ymax = float(row["ymax_raw"]) if "ymax_raw" in row else yavg
+                luma_rows.append((int(row["second"]), yavg, yp95, ymax))
+        print(f"  → {len(luma_rows)} seconds loaded from CSV")
+        has_spatial = "yp95_raw" in open(OUT_CSV).readline()
+        if not has_spatial:
+            print("  NOTE: CSV has only mean luma — re-run with --reextract to get p95/max hot-spot data")
+    else:
+        if not MOVIE.exists():
+            sys.exit(f"ERROR: movie not found and no CSV to fall back on:\n  {MOVIE}")
+        luma_rows = extract_luma(MOVIE)
+        if not luma_rows:
+            sys.exit("ERROR: No luma data extracted. Check FFmpeg is on PATH.")
 
-    # ── Luma extraction ──────────────────────────────────────────────────
-    luma_rows = extract_luma(MOVIE)
-    if not luma_rows:
-        sys.exit("ERROR: No luma data extracted. Check FFmpeg is on PATH.")
-
-    # The scale=1:1 gray output respects the source colour range (tv/limited).
     # Rec.709 limited: 16=black, 235=white. Normalise to 0–255 for DMX comparison.
     def norm(y):
         return max(0.0, min(255.0, (y - Y_BLACK) / (Y_WHITE - Y_BLACK) * 255.0))
 
-    luma_norm = [(sec, float(yavg), norm(yavg)) for sec, yavg in luma_rows]
+    # luma_rows: (sec, yavg_raw, yp95_raw, ymax_raw)
+    luma_norm = [
+        (sec, float(ya), norm(ya), float(yp), norm(yp), float(ym), norm(ym))
+        for sec, ya, yp, ym in luma_rows
+    ]
+    # columns: sec, ya_raw, ya_norm, yp_raw, yp_norm, ym_raw, ym_norm
 
-    # ── Write CSV ────────────────────────────────────────────────────────
-    with open(OUT_CSV, "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["second", "timecode", "yavg_raw", "yavg_0_255"])
-        for sec, yavg, yn in luma_norm:
-            h, rem = divmod(sec, 3600)
-            mn, s  = divmod(rem, 60)
-            w.writerow([sec, f"{h:02d}:{mn:02d}:{s:02d}", f"{yavg:.2f}", f"{yn:.1f}"])
+    # ── Write CSV (only when freshly extracted) ──────────────────────────
+    if args.reextract or not OUT_CSV.exists():
+        with open(OUT_CSV, "w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["second", "timecode",
+                        "yavg_raw", "yavg_0_255",
+                        "yp95_raw", "yp95_0_255",
+                        "ymax_raw", "ymax_0_255"])
+            for sec, ya, ya_n, yp, yp_n, ym, ym_n in luma_norm:
+                h, rem = divmod(sec, 3600)
+                mn, s  = divmod(rem, 60)
+                w.writerow([sec, f"{h:02d}:{mn:02d}:{s:02d}",
+                            f"{ya:.2f}", f"{ya_n:.1f}",
+                            f"{yp:.2f}", f"{yp_n:.1f}",
+                            f"{ym:.2f}", f"{ym_n:.1f}"])
     print(f"CSV → {OUT_CSV}")
 
     # ── Parse cues & simulate DMX arc ────────────────────────────────────
@@ -201,12 +251,30 @@ def main():
     fig.patch.set_facecolor(BG)
     ax.set_facecolor(AX)
 
-    seconds   = [r[0] for r in luma_norm]
-    luma_vals = [r[2] for r in luma_norm]    # normalised 0–255
+    COL_P95  = "#ff8c42"   # orange — p95 hot spots
+    COL_PMAX = "#ff4444"   # red    — per-frame max
 
-    ax.fill_between(seconds, luma_vals, alpha=0.15, color=COL_LUMA)
+    seconds   = [r[0] for r in luma_norm]
+    luma_vals = [r[2] for r in luma_norm]    # yavg normalised 0–255
+    p95_vals  = [r[4] for r in luma_norm]    # yp95 normalised 0–255
+    pmax_vals = [r[6] for r in luma_norm]    # ymax normalised 0–255
+
+    # Mean — background fill
+    ax.fill_between(seconds, luma_vals, alpha=0.12, color=COL_LUMA)
     ax.plot(seconds, luma_vals,
-            color=COL_LUMA, linewidth=0.9, label="Video luma  (Rec.709 → 0–255)", zorder=3)
+            color=COL_LUMA, linewidth=0.8, alpha=0.7,
+            label="Mean luma (frame avg)", zorder=3)
+
+    # p95 — bright hot-spots within frame
+    ax.fill_between(seconds, p95_vals, alpha=0.10, color=COL_P95)
+    ax.plot(seconds, p95_vals,
+            color=COL_P95, linewidth=1.2,
+            label="p95 luma (bright area, 5% of frame)", zorder=4)
+
+    # pmax — absolute brightest pixel per second
+    ax.plot(seconds, pmax_vals,
+            color=COL_PMAX, linewidth=0.6, alpha=0.55, linestyle="-",
+            label="Max luma (brightest pixel)", zorder=4)
 
     if cues:
         dmx_secs = list(range(TOTAL_SEC + 1))
@@ -214,13 +282,13 @@ def main():
         ax.plot(dmx_secs, dmx_arc,
                 color=COL_DMX, linewidth=1.6, label="DMX CH1  (current cue arc)", zorder=4)
 
-    # Film brightest moment marker
-    if luma_vals:
-        film_peak_sec = luma_norm[luma_vals.index(max(luma_vals))][0]
+    # Film brightest moment marker (based on p95, not mean)
+    if p95_vals:
+        film_peak_sec = luma_norm[p95_vals.index(max(p95_vals))][0]
         h, r2 = divmod(film_peak_sec, 3600); mn, s = divmod(r2, 60)
-        ax.axvline(x=film_peak_sec, color="#f0d080", linewidth=0.8, linestyle=":", alpha=0.7)
-        ax.text(film_peak_sec + 6, 248, f"Film peak  {h:02d}:{mn:02d}:{s:02d}",
-                color="#f0d080", fontsize=8, alpha=0.9)
+        ax.axvline(x=film_peak_sec, color=COL_P95, linewidth=0.8, linestyle=":", alpha=0.7)
+        ax.text(film_peak_sec + 6, 248, f"Film peak (p95)  {h:02d}:{mn:02d}:{s:02d}",
+                color=COL_P95, fontsize=8, alpha=0.9)
 
     # DMX apex marker
     if APEX_SEC is not None:
@@ -263,37 +331,40 @@ def main():
     if luma_vals:
         def tc(sec):
             h, r = divmod(sec, 3600); mn, s = divmod(r, 60); return f"{h:02d}:{mn:02d}:{s:02d}"
-        brightest = max(luma_norm, key=lambda r: r[2])
-        darkest   = min(luma_norm, key=lambda r: r[2])
+        brightest_p95 = max(luma_norm, key=lambda r: r[4])
+        brightest_avg = max(luma_norm, key=lambda r: r[2])
         print(f"\nVideo luma statistics — {LABEL}:")
-        print(f"  min   {min(luma_vals):.1f}")
-        print(f"  max   {max(luma_vals):.1f}")
-        print(f"  mean  {sum(luma_vals)/len(luma_vals):.1f}")
-        print(f"  brightest  {tc(brightest[0])}  ({brightest[2]:.1f}/255)")
-        print(f"  darkest    {tc(darkest[0])}  ({darkest[2]:.1f}/255)")
+        print(f"  mean avg   min={min(luma_vals):.1f}  max={max(luma_vals):.1f}  mean={sum(luma_vals)/len(luma_vals):.1f}")
+        print(f"  p95  avg   min={min(p95_vals):.1f}  max={max(p95_vals):.1f}  mean={sum(p95_vals)/len(p95_vals):.1f}")
+        print(f"  brightest frame (p95)  {tc(brightest_p95[0])}  ({brightest_p95[4]:.1f}/255)")
+        print(f"  brightest frame (avg)  {tc(brightest_avg[0])}  ({brightest_avg[2]:.1f}/255)")
 
-        # Bright clusters (luma > 30)
-        print(f"\nBright clusters (luma > 30):")
+        # Bright clusters — use p95 with lower threshold to catch hot spots
+        print(f"\nBright clusters (p95 > 40):")
         in_b, b_start, b_peak = False, 0, 0.0
-        for sec, _, y in luma_norm:
-            if y > 30 and not in_b:
+        for row in luma_norm:
+            sec = row[0]; y = row[4]  # yp95_norm
+            if y > 40 and not in_b:
                 in_b, b_start, b_peak = True, sec, y
             elif in_b:
                 if y > b_peak: b_peak = y
-                if y <= 30:
-                    print(f"  {tc(b_start)} → {tc(sec-1)}  peak {b_peak:.0f}")
+                if y <= 40:
+                    print(f"  {tc(b_start)} -> {tc(sec-1)}  peak {b_peak:.0f}")
                     in_b = False
+        if in_b:
+            print(f"  {tc(b_start)} -> {tc(luma_norm[-1][0])}  peak {b_peak:.0f}")
 
-        # Dark valleys (luma < 3, ≥ 30 s)
-        print(f"\nSustained dark valleys (luma < 3, ≥ 30 s):")
+        # Dark valleys (mean luma < 3, >= 30 s)
+        print(f"\nSustained dark valleys (mean luma < 3, >= 30 s):")
         in_d, d_start = False, 0
-        for sec, _, y in luma_norm:
+        for row in luma_norm:
+            sec = row[0]; y = row[2]  # yavg_norm
             if y < 3 and not in_d:
                 in_d, d_start = True, sec
             elif y >= 3 and in_d:
                 dur = sec - d_start
                 if dur >= 30:
-                    print(f"  {tc(d_start)} → {tc(sec-1)}  ({dur} s)")
+                    print(f"  {tc(d_start)} -> {tc(sec-1)}  ({dur} s)")
                 in_d = False
 
 
