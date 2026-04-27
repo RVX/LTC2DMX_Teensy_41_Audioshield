@@ -54,21 +54,62 @@
 
 static const DMXCue CUE_LIST[] = {
 
-    // ── OPENING: black → first whisper ──────────────────────────────────────
-    // ── OPENING STRIKE  0:00:00 – 0:00:55 ──────────────────────────────────
-    //   Four descending hard pulses into near-black — fast contrast shock.
-    //   Each burst: 1–2s snap up, 4–7s drop back to dark.
-    //   Resolves into silence before the sea-breath begins.
+    // ── OPENING CHAOS  0:00:00 – 0:00:55 ────────────────────────────────────
+    //   Irregular burst-and-cut sequence.  No two intervals the same.
+    //   Mix of strobed / solid hits, one double-tap, one deceptive dim pop,
+    //   one sustained strobe run abruptly cut, then a dying stutter.
+    //   Ends in 39 s of hard silence before the sea-breath awakens.
+    //
+    //   Strobe ch2: 40 = light shimmer · 55 = medium · 65 = fast rattle
+    //   All gaps = explicit V(0,0) — hard black, not sub-threshold ambiguity.
+    //
+    //   Timecode → real-time:
+    //     :00:18 = 0.72s   :01:03 = 1.12s   :01:20 = 1.80s
+    //     :02:14 = 2.56s   :02:19 = 2.76s   :03:01 = 3.04s
+    //     :03:08 = 3.32s   :04:20 = 4.80s   :06:05 = 6.20s
+    //     :07:10 = 7.40s   :08:07 = 8.28s   :08:14 = 8.56s
+    //     :09:06 = 9.24s   :09:11 = 9.44s   :09:18 = 9.72s
+    //     :10:00 = 10.00s  :10:06 = 10.24s  :10:14 = 10.56s
+    //     :12:15 = 12.60s  :13:05 = 13.20s → fades → 16.20s black
 
-    { 0,  0,  0, 0,      0, V(  0, 0) },   // hard black
-    { 0,  0,  1, 0,   1500, V(210, 0) },   // 1.5s snap → 82% (first strike)
-    { 0,  0,  2, 0,   4000, V(  0, 0) },   // 4s hard black (→ 0:00:06)
-    { 0,  0,  6, 0,   1500, V(175, 0) },   // 1.5s snap → 69% (second strike)
-    { 0,  0,  8, 0,   5000, V(  0, 0) },   // 5s hard black (→ 0:00:13)
-    { 0,  0, 13, 0,   2000, V(138, 0) },   // 2s snap → 54% (third, decaying)
-    { 0,  0, 15, 0,   6000, V(  0, 0) },   // 6s hard black (→ 0:00:21)
-    { 0,  0, 21, 0,   2500, V( 95, 0) },   // 2.5s snap → 37% (fourth, faint echo)
-    { 0,  0, 24, 0,  31000, V(  0, 0) },   // 31s hard black — silence before sea-breath (→ 0:00:55)
+    { 0,  0,  0,  0,    100, V(  0,  0) },  // hard black
+
+    // burst 1 — strobe hit, cut
+    { 0,  0,  0, 18,    100, V(220, 55) },  // 0.72s  86% + strobe
+    { 0,  0,  1,  3,    100, V(  0,  0) },  // 1.12s  cut black
+
+    // burst 2 — solid, no strobe, different gap
+    { 0,  0,  1, 20,    100, V(195,  0) },  // 1.80s  76% solid
+    { 0,  0,  2,  0,    100, V(  0,  0) },  // 2.00s  cut black
+
+    // burst 3 — double tap (unexpected second hit 5 frames later)
+    { 0,  0,  2, 14,    100, V(240,  0) },  // 2.56s  94% snap
+    { 0,  0,  2, 19,    100, V(  0,  0) },  // 2.76s  cut (5 frames)
+    { 0,  0,  3,  1,    100, V(215,  0) },  // 3.04s  84% double-tap
+    { 0,  0,  3,  8,   1500, V(  0,  0) },  // 3.32s  1.5s fade to black (→ 4.82s)
+
+    // burst 4 — sustained strobe run, abrupt cut
+    { 0,  0,  4, 20,    200, V(175, 65) },  // 4.80s  strobe run begins
+    { 0,  0,  6,  5,    400, V(145, 65) },  // 6.20s  sustain, dims slightly
+    { 0,  0,  7, 10,    100, V(  0,  0) },  // 7.40s  abrupt cut to black
+
+    // burst 5 — deceptive dim pop (small where big was expected)
+    { 0,  0,  8,  7,    100, V( 72,  0) },  // 8.28s  28% dim — surprise quiet
+    { 0,  0,  8, 14,    100, V(  0,  0) },  // 8.56s  cut black
+
+    // burst 6 — fast triple stutter: big → cut → medium+strobe → cut → small
+    { 0,  0,  9,  6,    100, V(205,  0) },  // 9.24s  80% big
+    { 0,  0,  9, 11,    100, V(  0,  0) },  // 9.44s  cut (5 frames)
+    { 0,  0,  9, 18,    100, V(165, 40) },  // 9.72s  65% + light strobe
+    { 0,  0, 10,  0,    100, V(  0,  0) },  // 10.00s cut (7 frames)
+    { 0,  0, 10,  6,    100, V(118,  0) },  // 10.24s 46% smaller, no strobe
+    { 0,  0, 10, 14,   2000, V(  0,  0) },  // 10.56s 2s fade to black (→ 12.56s)
+
+    // burst 7 — dying strobe, last gasp, slow fade out
+    { 0,  0, 12, 15,    300, V(105, 50) },  // 12.60s last strobe flash
+    { 0,  0, 13,  5,   3000, V(  0,  0) },  // 13.20s 3s fade to black (→ 16.20s)
+
+    // ── 39 s hard silence — the surface settles ─────────────────────────────
 
     // ── AWAKENING  0:00:55 – 5:15  (floor 22, peaks 58→78) ─────────────────
 
