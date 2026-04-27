@@ -21,7 +21,7 @@
 #define OLED_ADDR    0x3C
 #define OLED_RESET   -1     // share Teensy reset
 
-#define DISP_MSG_LINES  3   // number of scrolling message rows
+#define DISP_MSG_LINES  1   // number of scrolling message rows
 
 class LTCDisplay {
 public:
@@ -60,11 +60,33 @@ public:
         _zcErr   = zcErr;
     }
 
+    // ── Operation mode + DMX master level ────────────────────────────────────
+    void setModeAndMaster(bool live, uint8_t master) {
+        _liveMode  = live;
+        _dmxMaster = master;
+    }
+
+    // ── Live DMX channel values (7 channels, index 0=CH1 .. 6=CH7) ─────────
+    void setDMXChannels(const uint8_t* vals) {
+        for (uint8_t i = 0; i < 7; ++i) _dmxCh[i] = vals[i];
+    }
+
+    // ── Cue position + next cue TC ─────────────────────────────────────────
+    void setCueInfo(int16_t curIdx, uint16_t total,
+                    uint8_t nh, uint8_t nm, uint8_t ns, uint8_t nf,
+                    bool hasNext) {
+        _curCueNum = (curIdx >= 0) ? (uint16_t)(curIdx + 1) : 0;
+        _cueTot    = total;
+        _nextH = nh; _nextM = nm; _nextS = ns; _nextF = nf;
+        _hasNext   = hasNext;
+    }
+
     // ── Scrolling message log ─────────────────────────────────────────────────
     void pushMessage(const char* msg) {
         for (uint8_t i = 0; i < DISP_MSG_LINES - 1; ++i)
             memcpy(_msgBuf[i], _msgBuf[i + 1], sizeof(_msgBuf[0]));
-        snprintf(_msgBuf[DISP_MSG_LINES - 1], sizeof(_msgBuf[0]), "%s", msg);
+        strncpy(_msgBuf[DISP_MSG_LINES - 1], msg, sizeof(_msgBuf[0]) - 1);
+        _msgBuf[DISP_MSG_LINES - 1][sizeof(_msgBuf[0]) - 1] = '\0';
     }
 
     // ── Render — call every loop() ────────────────────────────────────────────
@@ -102,7 +124,7 @@ public:
             }
         }
 
-        // ── Row 1: status indicator + label + level bar
+        // ── Row 1: icon + LIVE/PLAY + LTC status + level bar
         _display.setTextSize(1);
         if (_ltcOK) {
             _blink = !_blink;
@@ -111,39 +133,76 @@ public:
         } else {
             _display.fillRect(0, 17, 7, 7, SSD1306_WHITE);
         }
+        // LIVE/PLAY label immediately after icon
         _display.setCursor(10, 17);
+        _display.print(_liveMode ? "LIVE " : "PLAY ");
+        // LTC status after mode label
+        _display.setCursor(40, 17);
         _display.print(_ltcOK ? "LTC:OK" : "LTC:--");
 
-        // Level bar
+        // Level bar (right portion of row 1)
         {
-            uint8_t barW = (uint8_t)(_level * 74.0f);
-            if (barW > 74) barW = 74;
-            _display.drawRect(52, 18, 76, 5, SSD1306_WHITE);
+            uint8_t barW = (uint8_t)(_level * 46.0f);
+            if (barW > 46) barW = 46;
+            _display.drawRect(80, 18, 46, 5, SSD1306_WHITE);
             if (barW > 0)
-                _display.fillRect(53, 19, barW, 3, SSD1306_WHITE);
+                _display.fillRect(81, 19, barW, 3, SSD1306_WHITE);
         }
 
         // divider
         _display.drawFastHLine(0, 25, OLED_WIDTH, SSD1306_WHITE);
 
-        // ── Rows 2-4: event log
-        for (uint8_t i = 0; i < DISP_MSG_LINES; ++i) {
-            _display.setCursor(0, 27 + i * 9);
-            if (_msgBuf[i][0]) {
-                _display.print('>');
-                _display.print(_msgBuf[i]);
-            }
+        // ── Row 2: latest event (1 line) — 3px gap after divider
+        _display.setCursor(0, 29);
+        if (_msgBuf[0][0]) {
+            _display.print('>');
+            _display.print(_msgBuf[0]);
         }
 
-        // divider
-        _display.drawFastHLine(0, 54, OLED_WIDTH, SSD1306_WHITE);
+        // ── Row 3 (y=38): cue position + next cue TC (PLAY mode only)
+        if (!_liveMode && _cueTot > 0) {
+            char cueRow[24];
+            if (_hasNext) {
+                if (_curCueNum > 0)
+                    snprintf(cueRow, sizeof(cueRow), "C:%u/%u N:%02u:%02u:%02u:%02u",
+                             (unsigned)_curCueNum, (unsigned)_cueTot,
+                             (unsigned)_nextH, (unsigned)_nextM,
+                             (unsigned)_nextS, (unsigned)_nextF);
+                else
+                    snprintf(cueRow, sizeof(cueRow), "C:--/%u N:%02u:%02u:%02u:%02u",
+                             (unsigned)_cueTot,
+                             (unsigned)_nextH, (unsigned)_nextM,
+                             (unsigned)_nextS, (unsigned)_nextF);
+            } else {
+                snprintf(cueRow, sizeof(cueRow), "C:%u/%u  END OF SHOW",
+                         (unsigned)_curCueNum, (unsigned)_cueTot);
+            }
+            _display.setCursor(0, 38);
+            _display.print(cueRow);
+        }
 
-        // ── Row 5: stat line
-        char stat[22];
-        snprintf(stat, sizeof(stat), "m:%u/%u z:%lu c:%.0f%%",
-                 _memUsed, _memMax, (unsigned long)_zcErr, _cpu);
-        _display.setCursor(0, 56);
-        _display.print(stat);
+        // divider before DMX rows
+        _display.drawFastHLine(0, 46, OLED_WIDTH, SSD1306_WHITE);
+
+        // ── DMX row A (y=48): Master + R + G + B in decimal
+        {
+            char dmxA[22];
+            snprintf(dmxA, sizeof(dmxA), "DIM%-3u R%-3u G%-3u B%-3u",
+                     (unsigned)_dmxCh[0], (unsigned)_dmxCh[1],
+                     (unsigned)_dmxCh[2], (unsigned)_dmxCh[3]);
+            _display.setCursor(0, 48);
+            _display.print(dmxA);
+        }
+
+        // ── DMX row B (y=57): Strobe + Mode-ch + Speed in decimal
+        {
+            char dmxB[21];
+            snprintf(dmxB, sizeof(dmxB), "STR%-3u MOD%-3u SPD%-3u",
+                     (unsigned)_dmxCh[4], (unsigned)_dmxCh[5],
+                     (unsigned)_dmxCh[6]);
+            _display.setCursor(0, 57);
+            _display.print(dmxB);
+        }
 
         _display.display();
     }
@@ -156,12 +215,19 @@ private:
     bool     _tcPresent = false;
     bool     _blink     = false;
 
-    bool     _ltcOK   = false;
-    float    _level   = 0.0f;
-    uint8_t  _memUsed = 0;
-    uint8_t  _memMax  = 0;
-    float    _cpu     = 0.0f;
-    uint32_t _zcErr   = 0;
+    bool     _ltcOK     = false;
+    float    _level      = 0.0f;
+    uint8_t  _memUsed    = 0;
+    uint8_t  _memMax     = 0;
+    float    _cpu        = 0.0f;
+    uint32_t _zcErr      = 0;
+    bool     _liveMode   = true;
+    uint8_t  _dmxMaster  = 0;
+    uint8_t  _dmxCh[7]   = {};   // CH1..CH7 current output values
+    uint16_t _curCueNum  = 0;    // 1-based; 0 = no cue fired yet
+    uint16_t _cueTot     = 0;
+    uint8_t  _nextH = 0, _nextM = 0, _nextS = 0, _nextF = 0;
+    bool     _hasNext    = false;
     char     _msgBuf[DISP_MSG_LINES][22] = {};
     uint32_t _lastDraw = 0;
 };

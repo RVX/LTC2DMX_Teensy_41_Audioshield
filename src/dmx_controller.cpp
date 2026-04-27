@@ -60,6 +60,8 @@ void DMXController::update(uint8_t h, uint8_t m, uint8_t s, uint8_t f)
                       _cues[cueIdx].minutes,
                       _cues[cueIdx].seconds,
                       _cues[cueIdx].frames);
+
+        if (_cueCb) _cueCb((uint16_t)cueIdx, _cues[cueIdx]);
     }
 }
 

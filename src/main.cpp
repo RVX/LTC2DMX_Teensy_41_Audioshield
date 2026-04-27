@@ -7,7 +7,17 @@
 
 #include "ltc_decoder.h"
 #include "dmx_controller.h"
-#include "cues.h"
+// Active composition is set by the build environment (platformio.ini).
+// Select environment in VS Code PlatformIO status bar, or:
+//   pio run -e albedo           (25fps, 43min)
+//   pio run -e controlled_burn  (30fps, 32min)
+#if LTC_FRAMERATE == 25
+#  include "cues_albedo.h"
+#elif LTC_FRAMERATE == 30
+#  include "cues_control_burn.h"
+#else
+#  error "Unknown LTC_FRAMERATE — must be 25 (albedo) or 30 (controlled_burn) in platformio.ini"
+#endif
 #include "../include/config.h"
 #ifdef ENABLE_DISPLAY
 #include "../include/display.h"
@@ -83,7 +93,7 @@ static void dmxTestStart() {
     Serial.println("        module B -> XLR pin 2 (Data-)");
     Serial.println("        module GND -> XLR pin 1 (GND)");
     Serial.println();
-    for (uint16_t ch = 1; ch <= 7; ch++) dmxSender.set(ch, 0);
+    for (uint16_t ch = 1; ch <= 2; ch++) dmxSender.set(ch, 0);
     dmxTest.step = 1;
     dmxTest.stepStart = millis();
 }
@@ -94,68 +104,42 @@ static void dmxTestTick() {
     switch (dmxTest.step) {
     case 1: // all-off 300ms
         if (e >= 300) {
-            Serial.println("[1] White ramp");
-            dmxSender.set(DMX_CH_MASTER, 255);
-            dmxSender.set(DMX_CH_MODE,   0);
-            dmxSender.set(DMX_CH_SPEED,  0);
+            Serial.println("[1] Dimmer ramp 0→255 (Varytec 2-ch)");
+            dmxSender.set(DMX_CH_MASTER, 0);
             dmxSender.set(DMX_CH_STROBE, 0);
-            dmxSender.set(DMX_CH_RED,    0);
-            dmxSender.set(DMX_CH_GREEN,  0);
-            dmxSender.set(DMX_CH_BLUE,   0);
             dmxTest.step = 2; dmxTest.stepStart = millis();
         }
         break;
-    case 2: { // white ramp ~170ms
-        uint8_t v = (uint8_t)((e / 10) * 15); if (v > 255) v = 255;
-        dmxSender.set(DMX_CH_RED, v); dmxSender.set(DMX_CH_GREEN, v); dmxSender.set(DMX_CH_BLUE, v);
-        if (e >= 170) {
-            dmxSender.set(DMX_CH_RED, 255); dmxSender.set(DMX_CH_GREEN, 255); dmxSender.set(DMX_CH_BLUE, 255);
+    case 2: { // master ramp 0→255 over ~1.7s
+        uint8_t v = (uint8_t)((e * 255u) / 1700u);
+        dmxSender.set(DMX_CH_MASTER, v);
+        if (e >= 1700) {
+            dmxSender.set(DMX_CH_MASTER, 255);
+            Serial.println("[2] Full bright — fixture should be at 100%");
             dmxTest.step = 3; dmxTest.stepStart = millis();
         }
         break;
     }
-    case 3: // hold white 800ms
-        if (e >= 800) {
-            Serial.println("[2] RED");
-            dmxSender.set(DMX_CH_GREEN, 0); dmxSender.set(DMX_CH_BLUE, 0);
+    case 3: // hold full 1000ms
+        if (e >= 1000) {
+            Serial.println("[3] Strobe medium (ch2=80)");
+            dmxSender.set(DMX_CH_STROBE, 80);
             dmxTest.step = 4; dmxTest.stepStart = millis();
         }
         break;
-    case 4: // hold red 700ms
-        if (e >= 700) {
-            Serial.println("[3] GREEN");
-            dmxSender.set(DMX_CH_RED, 0); dmxSender.set(DMX_CH_GREEN, 255);
+    case 4: // strobe 1200ms
+        if (e >= 1200) {
+            dmxSender.set(DMX_CH_STROBE, 0);
+            Serial.println("[4] Blackout");
+            dmxSender.set(DMX_CH_MASTER, 0);
             dmxTest.step = 5; dmxTest.stepStart = millis();
         }
         break;
-    case 5: // hold green 700ms
-        if (e >= 700) {
-            Serial.println("[4] BLUE");
-            dmxSender.set(DMX_CH_GREEN, 0); dmxSender.set(DMX_CH_BLUE, 255);
-            dmxTest.step = 6; dmxTest.stepStart = millis();
-        }
-        break;
-    case 6: // hold blue 700ms
-        if (e >= 700) {
-            Serial.println("[5] WHITE+STROBE");
-            dmxSender.set(DMX_CH_RED, 255); dmxSender.set(DMX_CH_GREEN, 255);
-            dmxSender.set(DMX_CH_STROBE, 128);
-            dmxTest.step = 7; dmxTest.stepStart = millis();
-        }
-        break;
-    case 7: // strobe 1000ms
-        if (e >= 1000) {
-            dmxSender.set(DMX_CH_STROBE, 0);
-            Serial.println("[6] Blackout");
-            for (uint16_t ch = 1; ch <= 7; ch++) dmxSender.set(ch, 0);
-            dmxTest.step = 8; dmxTest.stepStart = millis();
-        }
-        break;
-    case 8: // blackout 300ms then done
+    case 5: // blackout 300ms then done
         if (e >= 300) {
             Serial.println("=== DMX TEST DONE ===");
-            Serial.println("If NO light: check wiring, DMX address (d001), XLR polarity");
-            Serial.println("If light but wrong color: check channel mode (7-ch)");
+            Serial.println("If NO light: check wiring, DMX address 001, mode=2CH");
+            Serial.println("If no strobe: check ch2 — Varytec strobe starts at value 4");;
             while (recordQueue.available()) recordQueue.freeBuffer();
             ltcDecoder.resync();
             tcMute = false;
@@ -170,13 +154,8 @@ static void dmxTestTick() {
 static uint8_t clamp8(int v) { return (uint8_t)(v < 0 ? 0 : v > 255 ? 255 : v); }
 
 static void applyLive() {
-    dmxSender.set(DMX_CH_MASTER,  255);      // master always full
-    dmxSender.set(DMX_CH_RED,     liveI);    // R = G = B for white
-    dmxSender.set(DMX_CH_GREEN,   liveI);
-    dmxSender.set(DMX_CH_BLUE,    liveI);
-    dmxSender.set(DMX_CH_STROBE,  liveS);    // 0-3 = off, 4-255 = strobe
-    dmxSender.set(DMX_CH_MODE,    0);        // manual RGB mode
-    dmxSender.set(DMX_CH_SPEED,   0);
+    dmxSender.set(DMX_CH_MASTER,  liveI);   // master dimmer (live intensity)
+    dmxSender.set(DMX_CH_STROBE,  liveS);   // 0 = off, 4-255 = slow→fast
 }
 
 static int markCmp(const void* a, const void* b) {
@@ -195,19 +174,14 @@ static void cmdExport() {
     bool hasStart = recCount > 0 && recBuf[0].h == 0 && recBuf[0].m == 0
                     && recBuf[0].s == 0 && recBuf[0].f == 0;
     if (!hasStart)
-        Serial.printf("00:00:00:00, 0, %u:255, %u:0, %u:0, %u:0, %u:0, %u:0, %u:0\n",
-                      DMX_CH_MASTER, DMX_CH_RED, DMX_CH_GREEN, DMX_CH_BLUE,
-                      DMX_CH_STROBE, DMX_CH_MODE, DMX_CH_SPEED);
+        Serial.printf("00:00:00:00, 0, %u:0, %u:0\n",
+                      DMX_CH_MASTER, DMX_CH_STROBE);
     for (uint16_t i = 0; i < recCount; i++) {
         const RecMark& r = recBuf[i];
-        Serial.printf("%02u:%02u:%02u:%02u, %u, %u:255, %u:%u, %u:%u, %u:%u, %u:%u, %u:0, %u:0\n",
+        Serial.printf("%02u:%02u:%02u:%02u, %u, %u:%u, %u:%u\n",
                       r.h, r.m, r.s, r.f, r.fadeMs,
-                      DMX_CH_MASTER,
-                      DMX_CH_RED,    r.intensity,
-                      DMX_CH_GREEN,  r.intensity,
-                      DMX_CH_BLUE,   r.intensity,
-                      DMX_CH_STROBE, r.strobe,
-                      DMX_CH_MODE,   DMX_CH_SPEED);
+                      DMX_CH_MASTER, r.intensity,
+                      DMX_CH_STROBE, r.strobe);
     }
     Serial.println("# ===== end CUES.CSV =====");
     Serial.println();
@@ -469,15 +443,19 @@ void loop()
     }
 
     // -- Audio blocks -> LTC decoder -------------------------------------------
+    // Break as soon as a frame is ready so reset() is called before more blocks
+    // are drained. Without this break, the decoder slides through frame N+1
+    // bits while _frameReady==true and loses frame alignment every second.
     while (recordQueue.available() > 0) {
         const int16_t* block = recordQueue.readBuffer();
         ltcDecoder.processSamples(block, AUDIO_BLOCK_SAMPLES);
         recordQueue.freeBuffer();
+        if (ltcDecoder.isFrameReady()) break;
     }
 
     // -- LTC frame decoded -----------------------------------------------------
     if (ltcDecoder.isFrameReady()) {
-        const LTCTimecode& tc = ltcDecoder.getTimecode();
+        LTCTimecode tc = ltcDecoder.getTimecode();  // mutable copy for BCD correction
         if (tc.valid) {
             // Save for live-compose marks
             lastTC.h=tc.hours; lastTC.m=tc.minutes;
@@ -523,6 +501,48 @@ void loop()
                 // ── Tier 1: frame skip / TC jump ─────────────────────────────
                 uint32_t curAbs = tcToAbsFrames(tc);
                 int32_t  diff   = (int32_t)curAbs - (int32_t)prevTCFrames;
+
+                // ── BCD tens-digit flip correction ──────────────────────────
+                // At 30fps the biphase decoder sometimes adds 1 to the LTC
+                // frame-tens digit (bits 8-9), producing three corruption types:
+                //
+                //  A) :09 → :19  (tens 0→1, frames only, diff≈+11)
+                //  B) :19 → :29  (tens 1→2, frames only, diff≈+11)
+                //  C) :29 → :39  which is invalid, so the BCD decoder carries
+                //                into seconds: decoded as (SS+1):09  (diff≈+11)
+                //
+                // All three show diff in [9,12]. Fix: subtract 10 from curAbs
+                // and verify correctedDiff == 1 (single-frame advance) before
+                // accepting the correction. Recompute tc fields from the
+                // corrected absolute frame number to handle any carry cleanly.
+                if (diff >= 9 && diff <= 12) {
+                    uint32_t correctedAbs  = curAbs - 10;
+                    int32_t  correctedDiff = (int32_t)correctedAbs - (int32_t)prevTCFrames;
+                    if (correctedDiff == 1) {
+                        // Recompute all TC fields from the corrected absolute frame
+                        uint32_t totalSec  = correctedAbs / LTC_FRAMERATE;
+                        tc.frames  = (uint8_t)(correctedAbs % LTC_FRAMERATE);
+                        tc.seconds = (uint8_t)(totalSec % 60);
+                        tc.minutes = (uint8_t)((totalSec / 60) % 60);
+                        tc.hours   = (uint8_t)((totalSec / 3600) % 24);
+                        curAbs     = correctedAbs;
+                        diff       = 1;    // fall through as clean frame
+                    } else {
+                        // Correction doesn't anchor cleanly — discard glitch
+                        ltcDecoder.reset();
+                        return;
+                    }
+                }
+
+                // ── Backward glitch filter ───────────────────────────────────
+                // Small negative diff = isolated BCD corruption going backward.
+                // Discard without updating prevTCFrames so the next clean frame
+                // re-anchors naturally.
+                if (diff < 0 && diff > -(int32_t)LTC_FRAMERATE) {
+                    ltcDecoder.reset();
+                    return;
+                }
+
                 if (diff < 0 || diff > 10) {
                     Serial.printf("[!!] TC jump   -> %02u:%02u:%02u%c%02u\n",
                         tc.hours, tc.minutes, tc.seconds,
@@ -609,25 +629,21 @@ void loop()
         if (now - lastStat >= HEARTBEAT_INTERVAL_MS) {
             lastStat = now;
 
-            Serial.printf("[STAT] LTC:%-3s  lvl:%3.0f%%  skips:%-3u  jumps:%-3u  zcErr:%-4u  mem:%2u(pk:%2u)/%u  cpu:%.1f%%\n",
+            Serial.printf("[STAT] LTC:%-3s  lvl:%3.0f%%  skips:%-3u  jumps:%-3u  rej:%-3u  zcErr:%-4u  mem:%2u(pk:%2u)/%u  cpu:%.1f%%\n",
                 ltcPresent ? "OK" : "---",
                 s_audioLevel * 100.0f,
                 frameSkips,
                 tcJumps,
+                ltcDecoder.getRejectCount(),
                 ltcDecoder.getZcResets(),
                 AudioMemoryUsage(),
                 AudioMemoryUsageMax(),
                 AUDIO_MEMORY_BLOCKS,
                 AudioProcessorUsage());
-            Serial.printf("[DMX]  %s  DIM:%-3u R:%-3u G:%-3u B:%-3u  STR:%-3u MOD:%-3u SPD:%-3u\n",
+            Serial.printf("[DMX]  %s  DIM:%-3u STR:%-3u\n",
                 liveMode ? "LIVE" : "PLAY",
-                liveMode ? (unsigned)255          : (unsigned)dmxCtrl.getChannel(DMX_CH_MASTER),
-                liveMode ? (unsigned)liveI        : (unsigned)dmxCtrl.getChannel(DMX_CH_RED),
-                liveMode ? (unsigned)liveI        : (unsigned)dmxCtrl.getChannel(DMX_CH_GREEN),
-                liveMode ? (unsigned)liveI        : (unsigned)dmxCtrl.getChannel(DMX_CH_BLUE),
-                liveMode ? (unsigned)liveS        : (unsigned)dmxCtrl.getChannel(DMX_CH_STROBE),
-                liveMode ? (unsigned)0            : (unsigned)dmxCtrl.getChannel(DMX_CH_MODE),
-                liveMode ? (unsigned)0            : (unsigned)dmxCtrl.getChannel(DMX_CH_SPEED));
+                liveMode ? (unsigned)liveI  : (unsigned)dmxCtrl.getChannel(DMX_CH_MASTER),
+                liveMode ? (unsigned)liveS  : (unsigned)dmxCtrl.getChannel(DMX_CH_STROBE));
             if (!liveMode) {
                 int16_t  curIdx = dmxCtrl.getLastCueIndex();
                 uint16_t total  = dmxCtrl.getCueCount();

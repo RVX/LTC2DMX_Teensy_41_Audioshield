@@ -59,6 +59,14 @@ public:
     uint32_t getZcResets() const { return _zcResets; }
     void     resetZcResets()     { _zcResets = 0; }
 
+    // Returns count of frames where sync word matched but BCD fields were
+    // out-of-range (e.g. frames>=LTC_FRAMERATE due to bit-timing errors).
+    // Compare with frameSkips to diagnose 25fps decode issues:
+    //   rejectCount >> 0  → BCD corruption (threshold / bit-timing)
+    //   rejectCount == 0  → sync word not found (signal dropout / framing)
+    uint32_t getRejectCount() const { return _rejectCount; }
+    void     resetRejectCount()     { _rejectCount = 0; }
+
 private:
     // ── Biphase / zero-crossing state ────────────────────────────────────────
     float    _samplesPerBit;       // nominal samples per LTC bit
@@ -74,6 +82,7 @@ private:
     bool        _frameReady;
     uint32_t    _totalBits;    // debug counter
     uint32_t    _zcResets;     // zero-crossing timeout count (signal dropouts)
+    uint32_t    _rejectCount;  // sync found but BCD out-of-range
 
     // ── Internal helpers ─────────────────────────────────────────────────────
     void  _handleCrossing(float intervalSamples);

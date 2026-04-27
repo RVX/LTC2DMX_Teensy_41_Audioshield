@@ -57,11 +57,23 @@ public:
     // Call with each decoded LTC timecode
     void update(uint8_t h, uint8_t m, uint8_t s, uint8_t f);
 
+    // Optional callback invoked whenever a new cue fires.
+    // Signature: void cb(uint16_t cueIndex, const DMXCue& cue)
+    void setCueCallback(void (*cb)(uint16_t, const DMXCue&)) { _cueCb = cb; }
+
     // Call every loop() — processes fade interpolation
     void tick();
 
     // Force all channels to 0
     void blackout();
+
+    // Read current output value for a channel (1-based, returns 0 if out of range)
+    uint8_t getChannel(uint16_t ch) const { return (ch > 0 && ch < 513) ? _dmxState[ch] : 0; }
+
+    // Query cue engine state
+    int16_t       getLastCueIndex() const { return _lastCueIndex; }
+    uint16_t      getCueCount()     const { return _cueCount; }
+    const DMXCue* getCue(uint16_t idx) const { return (idx < _cueCount) ? &_cues[idx] : nullptr; }
 
 private:
     qindesign::teensydmx::Sender& _sender;
@@ -71,6 +83,8 @@ private:
 
     int16_t  _lastCueIndex;       // index of last applied cue (-1 = none)
     uint32_t _lastTotalFrames;    // previous TC in frames (loop detection)
+
+    void (*_cueCb)(uint16_t, const DMXCue&) = nullptr;  // optional cue-fired callback
 
     // Live DMX state: index = channel (1-512), value = current output level
     uint8_t  _dmxState[513];

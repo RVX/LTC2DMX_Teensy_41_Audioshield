@@ -13,6 +13,7 @@ LTCDecoder::LTCDecoder()
     , _frameReady(false)
     , _totalBits(0)
     , _zcResets(0)
+    , _rejectCount(0)
     , _expectMidBit(false)
 {
     memset(_bitBuffer, 0, sizeof(_bitBuffer));
@@ -169,6 +170,13 @@ void LTCDecoder::_decodeFrame()
         _timecode.minutes >= 60 ||
         _timecode.seconds >= 60 ||
         _timecode.frames  >= LTC_FRAMERATE) {
+        _rejectCount++;
+#ifdef DEBUG_LTC_FRAMES
+        // Print raw decoded values so we can see exactly what the BCD corruption looks like
+        Serial.printf("[LTC] reject: %02u:%02u:%02u:%02u (h%u m%u s%u f%u)\n",
+            _timecode.hours, _timecode.minutes, _timecode.seconds, _timecode.frames,
+            _timecode.hours, _timecode.minutes, _timecode.seconds, _timecode.frames);
+#endif
         _timecode.valid = false;
         return;
     }

@@ -23,7 +23,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Expected LTC frame rate: 24 | 25 | 2997 (29.97 drop) | 30
-#define LTC_FRAMERATE         30
+// Override by defining LTC_FRAMERATE before including this file
+// (e.g. in cues_albedo.h for 25fps, cues_control_burn.h for 30fps).
+#ifndef LTC_FRAMERATE
+#define LTC_FRAMERATE         25
+#endif
 
 // Nominal samples per LTC bit at the configured frame rate.
 // 44117.64706f is the Teensy audio engine's exact sample rate (AUDIO_SAMPLE_RATE_EXACT).
@@ -81,29 +85,32 @@
 #define DMX_SERIAL_PORT       Serial1
 
 // Total number of DMX channels to transmit (universe size, max 512)
-#define DMX_UNIVERSE_SIZE     7
+#define DMX_UNIVERSE_SIZE     2
 
 // ── Fixture channel map ────────────────────────────────────────────────────
-// 7-channel RGB PAR lamp:
-//   CH 1 = Total dimming / master  ( 0 = off, 255 = full )
-//   CH 2 = Red dimming             ( 0-255 )
-//   CH 3 = Green dimming           ( 0-255 )
-//   CH 4 = Blue dimming            ( 0-255 )
-//   CH 5 = Strobe                  ( 0-3 = off, 4-255 = slow→fast )
-//   CH 6 = Mode                    ( 0-49 = manual RGB )
-//   CH 7 = Effect speed            ( 0-255, only used with modes 50+ )
+// Varytec LED Theater Spot 50 3200K — 2-channel DMX mode
+// All 4 fixtures share the same DMX start address (address 1).
+//
+//   CH 1 = Master dimmer   ( 0 = off, 255 = full intensity )
+//   CH 2 = Strobe          ( 0 = off, 4-255 = slow→fast )
+//
+// Set fixture to "2 CH" mode via its front-panel menu:
+//   Menu → Mode → 2 CH → Enter
+// Set DMX address to 001 on every fixture.
 #define DMX_BASE_ADDR         1
 #define DMX_CH_MASTER        (DMX_BASE_ADDR)
-#define DMX_CH_RED           (DMX_BASE_ADDR + 1)
-#define DMX_CH_GREEN         (DMX_BASE_ADDR + 2)
-#define DMX_CH_BLUE          (DMX_BASE_ADDR + 3)
-#define DMX_CH_STROBE        (DMX_BASE_ADDR + 4)
-#define DMX_CH_MODE          (DMX_BASE_ADDR + 5)
-#define DMX_CH_SPEED         (DMX_BASE_ADDR + 6)
+#define DMX_CH_STROBE        (DMX_BASE_ADDR + 1)
 
-// Legacy alias used by live-compose commands (maps to master for white)
+// Alias for live-compose intensity command
 #define DMX_CH_INTENSITY      DMX_CH_MASTER
 
-// Loop detection threshold (frames)
-#define DMX_LOOP_JUMP_FRAMES  150     // 5 seconds @ 30fps
+// Loop detection threshold (frames) — 5 seconds at the active frame rate
+#define DMX_LOOP_JUMP_FRAMES  (LTC_FRAMERATE * 5)
+
+// ── Optional deep LTC diagnostic ─────────────────────────────────────────
+// Uncomment to print details of every frame that has valid sync but
+// out-of-range BCD (invalid hours/minutes/seconds/frames value).
+// This distinguishes bit-level dropout from BCD corruption at 25fps.
+// WARNING: can produce many serial lines — use briefly for diagnostics only.
+// #define DEBUG_LTC_FRAMES
 

@@ -1,0 +1,40 @@
+# test_cues_albedo.csv — quick playback test for ALBEDO (43 min)
+# Julian Charrière · CORRER · Venice 2026
+#
+# Copy to SD card root as CUES.CSV to run
+# Format: HH:MM:SS:FF, fadeMs, ch:val, ch:val
+# Channels: 1=Master dimmer (0-255)   2=Strobe (0=off, 4-255=slow→fast)
+# fadeMs=0 = instant snap, >0 = fade over that many milliseconds
+#
+# --- SAFETY BLACKOUT ---
+00:00:00:00,    0, 1:0,   2:0
+
+# --- SLOW RISE (12 s) ---
+00:00:05:00, 12000, 1:70,  2:0
+
+# --- SETTLE WARM ---
+00:00:25:00, 10000, 1:160, 2:0
+
+# --- MID-BRIGHT ---
+00:00:45:00,  6000, 1:210, 2:0
+
+# --- FILM-FLICKER strobe texture (ch2=6) ---
+00:01:00:00,  3000, 1:220, 2:6
+
+# --- STROBE off, bright hold ---
+00:01:15:00,  2000, 1:230, 2:0
+
+# --- SNAP full ---
+00:01:30:00,   400, 1:255, 2:0
+
+# --- FAST strobe burst (ch2=80) ---
+00:01:35:00,   400, 1:255, 2:80
+
+# --- KILL strobe ---
+00:01:37:00,   500, 1:240, 2:0
+
+# --- SLOW FADE to near-black (10 s) ---
+00:01:45:00, 10000, 1:20,  2:0
+
+# --- BLACKOUT ---
+00:02:00:00,  5000, 1:0,   2:0

@@ -1,7 +1,8 @@
 #pragma once
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Cue list — Varytec LED Theater Spot 50 3200K  (2-channel DMX mode)
+// Cue list — CONTROLLED BURN  (32 min · 30 fps)
+// Varytec LED Theater Spot 50 3200K  (2-channel DMX mode)
 // Julian Charrière · CORRER · Venice 2026
 //
 // Fixture: 1× COB LED 50W, 3200K warm white, Fresnel lens.
