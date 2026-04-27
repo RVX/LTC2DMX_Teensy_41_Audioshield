@@ -161,7 +161,7 @@ public:
 
         // ── Row 3 (y=38): cue position + next cue TC (PLAY mode only)
         if (!_liveMode && _cueTot > 0) {
-            char cueRow[24];
+            char cueRow[32];  // worst-case: "C:256/256 N:23:59:59:29" + null
             if (_hasNext) {
                 if (_curCueNum > 0)
                     snprintf(cueRow, sizeof(cueRow), "C:%u/%u N:%02u:%02u:%02u:%02u",

@@ -334,8 +334,7 @@ void setup()
 #ifdef ENABLE_DISPLAY
     // -- DMX cue display callback ---------------------------------------------
     dmxCtrl.setCueCallback([](uint16_t idx, const DMXCue& cue) {
-        char msg[22];
-        // "CUE999 HH:MM:SS:FF" = 21 chars, fits in the 22-char display buffer
+        char msg[24];  // "CUE999 HH:MM:SS:FF" = 18 chars + null; 24 = safe worst-case
         snprintf(msg, sizeof(msg), "CUE%-3u %02u:%02u:%02u:%02u",
                  (unsigned)(idx > 999 ? 999 : idx),
                  (unsigned)cue.hours, (unsigned)cue.minutes,
