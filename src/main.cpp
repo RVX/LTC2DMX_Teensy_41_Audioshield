@@ -67,7 +67,7 @@ static uint16_t sdCueCount = 0;
 
 static uint8_t  liveI    = 0;      // live intensity output (0-255)
 static uint8_t  liveS    = 0;      // live strobe    output (0-255)
-static bool     liveMode = true;   // true = manual serial control
+static bool     liveMode = false;  // false = PLAY (LTC drives cues); true = LIVE (manual serial)
 static bool     tcMute   = true;   // true = suppress TC printing (default ON)
 
 static struct { uint8_t h,m,s,f; bool valid; } lastTC = {0,0,0,0,false};

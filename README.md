@@ -1,8 +1,8 @@
-﻿# LTC2DMX â€” Teensy 4.1 + Audio Shield
+﻿# LTC2DMX — Teensy 4.1 + Audio Shield
 
 Reads **SMPTE LTC timecode** from a video player's LTC output (Blackmagic HyperDeck) and drives **DMX-512 lighting fixtures** in sync with the video. Includes a **live compose mode** for programming cues in real time while scrubbing the video.
 
-Built for **Julian CharriÃ¨re â€” Museo Correr, Venice 2026** by Victor Mazon Gardoqui
+Built for **Julian Charrière — Museo Correr, Venice 2026** by Victor Mazon Gardoqui
 
 ---
 
@@ -13,7 +13,7 @@ Built for **Julian CharriÃ¨re â€” Museo Correr, Venice 2026** by Victor M
 | **Albedo** | 43 min | **25 fps** | `src/cues_albedo.h` |
 | **Controlled Burn** | 32 min | **30 fps** | `src/cues_control_burn.h` |
 
-**Switching compositions** â€” change **one line** in `src/main.cpp`:
+**Switching compositions** — change **one line** in `src/main.cpp`:
 
 ```cpp
 // Albedo (25fps)
@@ -33,42 +33,42 @@ Then rebuild and upload. All frame-rate dependent values (`LTC_SAMPLES_PER_BIT`,
 |-----------|-------|
 | **Teensy 4.1** | IMXRT1062, 600 MHz, built-in SD slot |
 | **Teensy Audio Shield** (SGTL5000) | LINE IN = left 3.5 mm jack (LTC input) |
-| **MAX485 TTLâ†’RS485 Module** | Auto-direction, 3.3V compatible, converts serial TX â†’ DMX differential pair |
-| **Blackmagic HyperDeck Studio HD Plus** | BNC LTC OUT â†’ 3.5 mm LINE IN |
-| **Varytec LED Theater Spot 50 3200K** Ã— 4 | 50W COB, Fresnel lens, warm white. All 4 at **DMX address 001, 2-channel mode** |
-| **SSD1306 OLED 128Ã—64** | I2C address 0x3C â€” displays timecode, mode, OLED messages |
+| **MAX485 TTL→RS485 Module** | Auto-direction, 3.3V compatible, converts serial TX → DMX differential pair |
+| **Blackmagic HyperDeck Studio HD Plus** | BNC LTC OUT → 3.5 mm LINE IN |
+| **Varytec LED Theater Spot 50 3200K** × 4 | 50W COB, Fresnel lens, warm white. All 4 at **DMX address 001, 2-channel mode** |
+| **SSD1306 OLED 128×64** | I2C address 0x3C — displays timecode, mode, OLED messages |
 
-### Wiring â€” MAX485
+### Wiring — MAX485
 
 ```
 Teensy 4.1          MAX485 Module        XLR 3-pin (DMX)
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-Pin 1  (TX1) â”€â”€â”€â”€â”€â–º DI
-3.3 V  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º VCC   DE (tie to VCC)
-GND    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º GND   RE (tie to GND)
-                     A  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º XLR pin 3  (Data+)
-                     B  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º XLR pin 2  (Dataâˆ’)
-                     GND â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º XLR pin 1  (Shield/GND)
+─────────────────────────────────────────────────────────
+Pin 1  (TX1) ─────► DI
+3.3 V  ───────────► VCC   DE (tie to VCC)
+GND    ───────────► GND   RE (tie to GND)
+                     A  ──────────────► XLR pin 3  (Data+)
+                     B  ──────────────► XLR pin 2  (Data−)
+                     GND ─────────────► XLR pin 1  (Shield/GND)
 ```
 
-> If the fixture doesn't respond, try **swapping A and B** on the XLR side â€” polarity is the most common issue.
+> If the fixture doesn't respond, try **swapping A and B** on the XLR side — polarity is the most common issue.
 
-### Wiring â€” LTC Input
+### Wiring — LTC Input
 
-HyperDeck BNC LTC OUT â†’ BNC-to-3.5 mm cable â†’ **LINE IN** jack on Audio Shield (left channel). No termination resistor needed.
+HyperDeck BNC LTC OUT → BNC-to-3.5 mm cable → **LINE IN** jack on Audio Shield (left channel). No termination resistor needed.
 
 ### Varytec Fixture Setup
 
 Set each fixture via its front-panel menu:
 
-1. **Mode â†’ 2 CH â†’ Enter** (2-channel DMX mode)
-2. **Address â†’ 001** (same on all 4 fixtures â€” they all respond identically)
+1. **Mode → 2 CH → Enter** (2-channel DMX mode)
+2. **Address → 001** (same on all 4 fixtures — they all respond identically)
 
 ---
 
-## Fixture â€” DMX Channel Map
+## Fixture — DMX Channel Map
 
-**Varytec LED Theater Spot 50 3200K â€” 2-channel mode**
+**Varytec LED Theater Spot 50 3200K — 2-channel mode**
 
 | CH | Function | Range |
 |----|----------|-------|
@@ -78,10 +78,10 @@ Set each fixture via its front-panel menu:
 | Strobe value | Effect |
 |---|---|
 | 0 | Off |
-| 4â€“10 | Barely visible, organic film flicker |
-| 20â€“60 | Slow, deliberate pulses |
-| 80â€“150 | Medium strobe |
-| 200â€“255 | Fast strobe |
+| 4–10 | Barely visible, organic film flicker |
+| 20–60 | Slow, deliberate pulses |
+| 80–150 | Medium strobe |
+| 200–255 | Fast strobe |
 
 | Dimmer value | Brightness |
 |---|---|
@@ -113,21 +113,21 @@ pio device monitor
 ### Project Structure
 
 ```
-â”œâ”€â”€ include/
-â”‚   â”œâ”€â”€ config.h              # All tunable parameters â€” FPS auto-set by cue file
-â”‚   â””â”€â”€ display.h             # SSD1306 OLED driver
-â”œâ”€â”€ src/
-â”‚   â”œâ”€â”€ main.cpp              # Entry point, audio graph, serial command handler
-â”‚   â”œâ”€â”€ ltc_decoder.h/cpp     # SMPTE LTC biphase-mark decoder
-â”‚   â”œâ”€â”€ dmx_controller.h/cpp  # Cue engine with fade interpolation
-â”‚   â”œâ”€â”€ cues_albedo.h         # Albedo composition (43 min, 25 fps)
-â”‚   â”œâ”€â”€ cues_control_burn.h   # Controlled Burn composition (32 min, 30 fps)
-â”‚   â””â”€â”€ cues.h                # Legacy fallback (unused)
-â”œâ”€â”€ test_cues_albedo.csv      # Short test sequence for Albedo (SD-card format)
-â”œâ”€â”€ test_cues_control_burn.csv# Short test sequence for Controlled Burn
-â”œâ”€â”€ scripts/
-â”‚   â””â”€â”€ inject_version.py     # Git hash + build timestamp injected at compile time
-â””â”€â”€ platformio.ini
+├── include/
+│   ├── config.h              # All tunable parameters — FPS auto-set by cue file
+│   └── display.h             # SSD1306 OLED driver
+├── src/
+│   ├── main.cpp              # Entry point, audio graph, serial command handler
+│   ├── ltc_decoder.h/cpp     # SMPTE LTC biphase-mark decoder
+│   ├── dmx_controller.h/cpp  # Cue engine with fade interpolation
+│   ├── cues_albedo.h         # Albedo composition (43 min, 25 fps)
+│   ├── cues_control_burn.h   # Controlled Burn composition (32 min, 30 fps)
+│   └── cues.h                # Legacy fallback (unused)
+├── test_cues_albedo.csv      # Short test sequence for Albedo (SD-card format)
+├── test_cues_control_burn.csv# Short test sequence for Controlled Burn
+├── scripts/
+│   └── inject_version.py     # Git hash + build timestamp injected at compile time
+└── platformio.ini
 ```
 
 ### Dependencies
@@ -164,14 +164,14 @@ Open serial monitor at **115200 baud**. Boot banner:
   Codec  : OK
   FPS    : 25
   Cues   : 71  (built-in)
-  Mode   : LIVE (compose)
+  Mode   : PLAY (LTC)
   TC print: OFF
 -----------------------------------------
 ```
 
 ### 2. Test DMX hardware (no video needed)
 
-Press **`t`** (no Enter) â€” fixtures cycle: ramp up â†’ off â†’ slow strobe â†’ blackout. If nothing happens: check wiring, swap A/B on XLR, verify fixture address = 001 in 2-channel mode.
+Press **`t`** (no Enter) — fixtures cycle: ramp up → off → slow strobe → blackout. If nothing happens: check wiring, swap A/B on XLR, verify fixture address = 001 in 2-channel mode.
 
 ### 3. Play the video
 
@@ -181,7 +181,7 @@ Start HyperDeck. The Teensy decodes LTC and runs the composition automatically i
 
 ## Cue File Guide
 
-### `src/cues_albedo.h` / `src/cues_control_burn.h` â€” compiled-in
+### `src/cues_albedo.h` / `src/cues_control_burn.h` — compiled-in
 
 One row per cue:
 
@@ -193,18 +193,18 @@ One row per cue:
 | Field | Notes |
 |---|---|
 | `HH MM SS` | LTC start time (hours, minutes, seconds) |
-| `FF` | Frame within the second (0â€“24 for Albedo 25fps, 0â€“29 for Controlled Burn 30fps). Use **0** unless you need sub-second precision â€” 1 frame = 40 ms at 25fps, 33 ms at 30fps |
+| `FF` | Frame within the second (0–24 for Albedo 25fps, 0–29 for Controlled Burn 30fps). Use **0** unless you need sub-second precision — 1 frame = 40 ms at 25fps, 33 ms at 30fps |
 | `fadeMs` | `0` = instant snap. Any positive value = fade duration in milliseconds |
-| `V(d, s)` | `d` = dimmer 0â€“255, `s` = strobe 0â€“255 |
+| `V(d, s)` | `d` = dimmer 0–255, `s` = strobe 0–255 |
 
 Rules:
 - Cues **must be in chronological order**
-- Fixture holds the last cue's state â€” explicitly fade to black at end
-- After any edit â†’ **rebuild + reflash**
+- Fixture holds the last cue's state — explicitly fade to black at end
+- After any edit → **rebuild + reflash**
 
-### `test_cues_albedo.csv` / `test_cues_control_burn.csv` â€” SD card (runtime)
+### `test_cues_albedo.csv` / `test_cues_control_burn.csv` — SD card (runtime)
 
-Loaded from SD card at boot as `CUES.CSV` â€” **overrides compiled cues, no recompile needed.**
+Loaded from SD card at boot as `CUES.CSV` — **overrides compiled cues, no recompile needed.**
 
 ```csv
 # HH:MM:SS:FF,  fadeMs,  ch:val,  ch:val
@@ -216,15 +216,15 @@ Loaded from SD card at boot as `CUES.CSV` â€” **overrides compiled cues, no
 |---|---|
 | `HH:MM:SS:FF` | LTC trigger time |
 | `fadeMs` | 0 = snap, >0 = fade in ms |
-| `1:val` | CH1 = Master dimmer (0â€“255) |
-| `2:val` | CH2 = Strobe (0â€“255) |
-| `#` lines | Comments â€” ignored |
+| `1:val` | CH1 = Master dimmer (0–255) |
+| `2:val` | CH2 = Strobe (0–255) |
+| `#` lines | Comments — ignored |
 
 SD card workflow:
 1. Edit the `.csv` in any text editor
 2. Rename to **`CUES.CSV`**
 3. Copy to the **SD card root**
-4. Reboot Teensy â€” it loads automatically and boots into PLAY mode
+4. Reboot Teensy — it loads automatically and boots into PLAY mode
 
 ---
 
@@ -241,14 +241,14 @@ SD card workflow:
 
 | Command | Action |
 |---------|--------|
-| `p` | Toggle LIVE â†” PLAY mode |
+| `p` | Toggle LIVE ↔ PLAY mode |
 | `f` | Full bright (dimmer=255, strobe=0) |
 | `b` | Blackout |
-| `i NNN` | Set dimmer to NNN (0â€“255) |
-| `s NNN` | Set strobe to NNN (0â€“255) |
-| `+` / `-` | Dimmer Â±10 |
-| `]` / `[` | Dimmer Â±1 |
-| `.` / `,` | Strobe Â±10 |
+| `i NNN` | Set dimmer to NNN (0–255) |
+| `s NNN` | Set strobe to NNN (0–255) |
+| `+` / `-` | Dimmer ±10 |
+| `]` / `[` | Dimmer ±1 |
+| `.` / `,` | Strobe ±10 |
 | `m` | **Mark cue** at current LTC timecode (snap) |
 | `m 2000` | Mark cue with 2000 ms fade |
 | `u` | Undo last mark |
@@ -259,9 +259,9 @@ SD card workflow:
 
 ### Live Compose Workflow
 
-1. Play/scrub the video â†’ adjust dimmer/strobe â†’ press `m` to stamp a cue
-2. Move to another timecode â†’ adjust â†’ `m 3000` (3 s fade)
-3. `l` to review, `e` to export text â†’ paste into a `.csv` file â†’ SD card â†’ reboot
+1. Play/scrub the video → adjust dimmer/strobe → press `m` to stamp a cue
+2. Move to another timecode → adjust → `m 3000` (3 s fade)
+3. `l` to review, `e` to export text → paste into a `.csv` file → SD card → reboot
 
 ---
 
@@ -269,25 +269,67 @@ SD card workflow:
 
 | Mode | How | What |
 |---|---|---|
-| **LIVE** (default on boot) | You control manually via serial | Adjust lights in real time, compose cues |
-| **PLAY** | Triggered by `p` or auto at boot if `CUES.CSV` found on SD | LTC drives cues automatically with fade interpolation |
+| **PLAY** (default on boot) | LTC timecode drives cues automatically | Cue engine fires at matching timecodes with fade interpolation |
+| **LIVE** | Toggle with `p` | You control lights manually via serial — use for composing |
 
 ---
 
-## Configuration â€” `include/config.h`
+## OLED Display
+
+The SSD1306 128x64 display at I2C 0x3C is divided into five zones:
+
+```
++----------------------------------------------------------------+
+| Row 0 (y=0, 16 px, large text)                                 |
+| 00:02:01:09      <- SMPTE timecode HH:MM:SS:FF                 |
+| If no LTC: full inverted bar  [ NO LTC IN ]                    |
++----------------------------------------------------------------+
+| Row 1 (y=17, small text)                                       |
+| [>] PLAY  LTC:OK  [====      ]  <- icon/mode/status/level bar |
+|  |    |     |      level bar (46 px, proportional to signal)  |
+|  |    |     +-- LTC:OK  or  LTC:--                            |
+|  |    +-------- PLAY  or  LIVE                                |
+|  +------------- blinking triangle = LTC locked                |
+|                 solid square     = LTC lost                   |
++----------------------------------------------------------------+
+| Row 2 (y=29)   -- latest event message                        |
+| >CUE7  00:10:30:00   <- cue fires, mode changes, errors       |
++----------------------------------------------------------------+
+| Row 3 (y=38)   -- PLAY mode only, hidden in LIVE mode         |
+| C:7/69 N:00:12:00:00   <- cur cue / total, next cue TC       |
+| C:69/69  END OF SHOW   <- after last cue fires               |
++----------------------------------------------------------------+
+|  divider  (y=46)                                              |
+| DIM255 R0   G0   B0   <- DMX CH1-4 values                    |
+| STR0   MOD0   SPD0    <- DMX CH5-7 values                    |
+| (Varytec 2-ch: only DIM and STR are ever non-zero)           |
++----------------------------------------------------------------+
+```
+
+| Zone | Content | Notes |
+|---|---|---|
+| **Timecode** | `HH:MM:SS:FF` | Large text. Inverted bar with `NO LTC IN` when signal absent |
+| **Mode bar** | Icon + `LIVE`/`PLAY` + `LTC:OK`/`LTC:--` + level bar | Triangle icon blinks every frame when LTC locked; solid square = no signal |
+| **Event log** | Latest message | Shows cue fires (`CUE7 00:10:30:00`), mode changes, LTC acquired/lost |
+| **Cue row** | `C:N/T N:HH:MM:SS:FF` | Current cue number / total, and TC of the *next* upcoming cue. PLAY mode only |
+| **DMX values** | Raw channel values 0-255 | CH1-4 top row, CH5-7 bottom row. For Varytec 2-ch only DIM (CH1) and STR (CH2) are ever non-zero |
+
+---
+
+## Configuration — `include/config.h`
 
 | Parameter | Notes |
 |---|---|
-| `LTC_FRAMERATE` | Set automatically by the active cue header â€” **do not edit here** |
-| `LTC_SAMPLES_PER_BIT` | Derived from `LTC_FRAMERATE` â€” auto |
-| `DISPLAY_REFRESH_MS` | `1000 / LTC_FRAMERATE` â€” auto |
-| `DMX_LOOP_JUMP_FRAMES` | `LTC_FRAMERATE Ã— 5` â€” auto (125 @ 25fps, 150 @ 30fps) |
-| `DMX_BASE_ADDR` | `1` â€” fixture DMX start address |
-| `DMX_UNIVERSE_SIZE` | `2` â€” 2 channels (dimmer + strobe) |
+| `LTC_FRAMERATE` | Set automatically by the active cue header — **do not edit here** |
+| `LTC_SAMPLES_PER_BIT` | Derived from `LTC_FRAMERATE` — auto |
+| `DISPLAY_REFRESH_MS` | `1000 / LTC_FRAMERATE` — auto |
+| `DMX_LOOP_JUMP_FRAMES` | `LTC_FRAMERATE × 5` — auto (125 @ 25fps, 150 @ 30fps) |
+| `DMX_BASE_ADDR` | `1` — fixture DMX start address |
+| `DMX_UNIVERSE_SIZE` | `2` — 2 channels (dimmer + strobe) |
 | `AUDIO_LINEIN_LEVEL` | `0` = max sensitivity. Raise to 5 if signal clips |
-| `LTC_ZC_THRESHOLD` | `0.001` â€” zero-crossing sensitivity |
-| `LTC_LOSS_TIMEOUT_MS` | `1000` â€” ms silence before LTC LOST warning |
-| `HEARTBEAT_INTERVAL_MS` | `5000` â€” interval for `[STAT]` serial line |
+| `LTC_ZC_THRESHOLD` | `0.001` — zero-crossing sensitivity |
+| `LTC_LOSS_TIMEOUT_MS` | `1000` — ms silence before LTC LOST warning |
+| `HEARTBEAT_INTERVAL_MS` | `5000` — interval for `[STAT]` serial line |
 
 ---
 
@@ -299,10 +341,10 @@ SD card workflow:
 | Garbled TC / `rej:` counter climbing | Uncomment `DEBUG_LTC_BITS` to see raw bit stream |
 | Signal too hot (clipping) | Raise `AUDIO_LINEIN_LEVEL` from `0` to `5` in config.h |
 | Fixture doesn't respond | Run `t` test; check wiring; try swapping A/B on XLR |
-| Fixture in wrong mode | Verify: Menu â†’ 2 CH, Address = 001 on every fixture |
+| Fixture in wrong mode | Verify: Menu → 2 CH, Address = 001 on every fixture |
 | Regular frame-skip warnings | Check `LTC_FRAMERATE` matches the actual video source |
 | TC print floods serial | Press `q` to mute before typing commands |
-| Build mismatch at venue | Check boot banner `Build:` line â€” git hash + dirty flag |
+| Build mismatch at venue | Check boot banner `Build:` line — git hash + dirty flag |
 
 ---
 
@@ -310,19 +352,19 @@ SD card workflow:
 
 ### BCD tens-digit flip at 30 fps
 
-**Symptom** â€” With a 30 fps LTC source, `[!!] Frame skip: +9` and `[!!] TC jump` warnings appear once per second even on a clean, sequential tape. The serial monitor shows only frames `:09`, `:19`, `:29` passing the filter; all intermediate frames are eaten.
+**Symptom** — With a 30 fps LTC source, `[!!] Frame skip: +9` and `[!!] TC jump` warnings appear once per second even on a clean, sequential tape. The serial monitor shows only frames `:09`, `:19`, `:29` passing the filter; all intermediate frames are eaten.
 
-**Root cause** â€” At 30 fps the biphase decoder's sample window is marginally tighter than at 25 fps. For frames where the units digit is `9` (frames `:09`, `:19`, `:29`), timing noise occasionally causes the decoder to increment the BCD *tens* digit by 1. Three flavours:
+**Root cause** — At 30 fps the biphase decoder's sample window is marginally tighter than at 25 fps. For frames where the units digit is `9` (frames `:09`, `:19`, `:29`), timing noise occasionally causes the decoder to increment the BCD *tens* digit by 1. Three flavours:
 
 | Case | Correct frame | Decoded as | Raw diff |
 |---|---|---|---|
 | A | `HH:MM:SS:09` (tens=0) | `HH:MM:SS:19` (tens=1) | +10 |
 | B | `HH:MM:SS:19` (tens=1) | `HH:MM:SS:29` (tens=2) | +10 |
-| C | `HH:MM:SS:29` (tens=2) | `HH:MM:SS:39` â†’ BCD rollover â†’ **`HH:MM:(SS+1):09`** | +11 (`tc.frames = 9`) |
+| C | `HH:MM:SS:29` (tens=2) | `HH:MM:SS:39` → BCD rollover → **`HH:MM:(SS+1):09`** | +11 (`tc.frames = 9`) |
 
-Case C is the most damaging: the corrupted frame carries into the next second. The corrected frame appears as `(SS+1):09`. All frames `(SS+1):00â€“:08` that follow have a *negative* diff relative to the jumped position and are discarded by the backward glitch filter â€” so only one frame per second survives until the cycle repeats.
+Case C is the most damaging: the corrupted frame carries into the next second. The corrected frame appears as `(SS+1):09`. All frames `(SS+1):00–:08` that follow have a *negative* diff relative to the jumped position and are discarded by the backward glitch filter — so only one frame per second survives until the cycle repeats.
 
-**Fix (in `src/main.cpp`)** â€” When `diff` lands in `[9, 12]`, subtract 10 from the absolute frame counter and recompute *all* TC fields (HH, MM, SS, FF) from the corrected value using integer division. Accept the corrected frame only if `correctedDiff == 1` (single-frame advance); discard otherwise. Removing the earlier `tc.frames >= 10` guard is essential â€” Case C produces `tc.frames = 9`, which would bypass a tens-only check.
+**Fix (in `src/main.cpp`)** — When `diff` lands in `[9, 12]`, subtract 10 from the absolute frame counter and recompute *all* TC fields (HH, MM, SS, FF) from the corrected value using integer division. Accept the corrected frame only if `correctedDiff == 1` (single-frame advance); discard otherwise. Removing the earlier `tc.frames >= 10` guard is essential — Case C produces `tc.frames = 9`, which would bypass a tens-only check.
 
 ```cpp
 if (diff >= 9 && diff <= 12) {
@@ -343,7 +385,7 @@ if (diff >= 9 && diff <= 12) {
 }
 ```
 
-**If this bug recurs** â€” the symptom is always `[!!] Frame skip: +9` precisely once per second, and `[!!] TC jump` that lands on `...:09`. Check that the correction block is not guarded by `tc.frames >= 10`.
+**If this bug recurs** — the symptom is always `[!!] Frame skip: +9` precisely once per second, and `[!!] TC jump` that lands on `...:09`. Check that the correction block is not guarded by `tc.frames >= 10`.
 
 ---
 
