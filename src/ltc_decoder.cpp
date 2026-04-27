@@ -165,11 +165,15 @@ void LTCDecoder::_decodeFrame()
     _timecode.dropFrame = (_bitBuffer[10] == 1);
     _timecode.colorFrame= (_bitBuffer[11] == 1);
 
-    // Reject out-of-range BCD values caused by false-positive sync detections
+    // Reject out-of-range BCD values caused by false-positive sync detections.
+    // Allow tc.frames up to LTC_FRAMERATE+9: frames in [LTC_FRAMERATE, LTC_FRAMERATE+9]
+    // are the result of the tens-digit BCD glitch (adding 1 to the tens field when
+    // units=9 overflows into an out-of-range value at some framerates, e.g. :19→:29
+    // at 25fps).  The main-loop BCD fix handles these via the diff=[9,12] check.
     if (_timecode.hours   >= 24 ||
         _timecode.minutes >= 60 ||
         _timecode.seconds >= 60 ||
-        _timecode.frames  >= LTC_FRAMERATE) {
+        _timecode.frames  >= LTC_FRAMERATE + 10) {
         _rejectCount++;
 #ifdef DEBUG_LTC_FRAMES
         // Print raw decoded values so we can see exactly what the BCD corruption looks like

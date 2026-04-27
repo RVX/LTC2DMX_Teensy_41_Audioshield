@@ -542,6 +542,37 @@ void loop()
                     return;
                 }
 
+                // ── BCD second-rollover correction ───────────────────────────
+                // At the second boundary the decoder latches stale unit-digits
+                // from the last frame of the outgoing second into the first
+                // frame of the new second.
+                //
+                // 25fps example: last frame is :24 (units=4).  :24 itself is
+                // often decoded as :04 of the SAME second (backward → filtered
+                // above), and :00 of the new second is decoded as :04 as well.
+                // Result: diff = 5 or 6, tc.frames = 4.  Correct by snapping
+                // tc.frames back to 0 (start of new second).
+                //
+                // Condition: diff in [2..8], tc.frames == (LTC_FRAMERATE-1)%10,
+                // and after subtracting tc.frames the corrected diff is 1 or 2
+                // (2 means :24 was also backward-filtered — one silent frame loss).
+                if (diff >= 2 && diff <= 8) {
+                    const uint8_t lastUnits = (LTC_FRAMERATE - 1) % 10;
+                    if (lastUnits > 0 && tc.frames == lastUnits) {
+                        uint32_t correctedAbs  = curAbs - lastUnits;
+                        int32_t  correctedDiff = (int32_t)correctedAbs - (int32_t)prevTCFrames;
+                        if (correctedDiff >= 1 && correctedDiff <= 2) {
+                            uint32_t totalSec = correctedAbs / LTC_FRAMERATE;
+                            tc.frames  = 0;
+                            tc.seconds = (uint8_t)(totalSec % 60);
+                            tc.minutes = (uint8_t)((totalSec / 60) % 60);
+                            tc.hours   = (uint8_t)((totalSec / 3600) % 24);
+                            curAbs     = correctedAbs;
+                            diff       = 1;  // absorb ≤1-frame rollover loss silently
+                        }
+                    }
+                }
+
                 if (diff < 0 || diff > 10) {
                     Serial.printf("[!!] TC jump   -> %02u:%02u:%02u%c%02u\n",
                         tc.hours, tc.minutes, tc.seconds,
