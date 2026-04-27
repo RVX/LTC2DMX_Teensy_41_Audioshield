@@ -84,22 +84,39 @@
 // Wire MAX485:  VCC=3.3V  GND=GND  DE=3.3V  RE=GND  A=XLR3  B=XLR2  GND=XLR1
 #define DMX_SERIAL_PORT       Serial1
 
-// Total number of DMX channels to transmit (universe size, max 512)
-#define DMX_UNIVERSE_SIZE     2
-
 // ── Fixture channel map ────────────────────────────────────────────────────
-// Varytec LED Theater Spot 50 3200K — 2-channel DMX mode
-// All 4 fixtures share the same DMX start address (address 1).
+// Varytec LED Theater Spot 50 3200K
 //
-//   CH 1 = Master dimmer   ( 0 = off, 255 = full intensity )
-//   CH 2 = Strobe          ( 0 = off, 4-255 = slow→fast )
+//   2-channel DMX mode (albedo unit, address 001):
+//     CH 1 = Master dimmer  ( 0 = off, 255 = full intensity )
+//     CH 2 = Strobe         ( 0 = off, 4-255 = slow→fast )
 //
-// Set fixture to "2 CH" mode via its front-panel menu:
-//   Menu → Mode → 2 CH → Enter
-// Set DMX address to 001 on every fixture.
+//   3-channel DMX mode (controlled_burn unit, address 002):
+//     CH 1 = Master dimmer  ( 0 = off, 255 = full intensity )
+//     CH 2 = Fine dimmer    ( 0 = no fine adjust, 255 = max fine )
+//     CH 3 = Strobe         ( 0 = off, 4-255 = slow→fast )
+//
+// Override DMX_BASE_ADDR and DMX_NUM_CH via build_flags per environment.
+// ─────────────────────────────────────────────────────────────────────────
+
+// DMX start address of the fixture (1-based). Override per env if needed.
+#ifndef DMX_BASE_ADDR
 #define DMX_BASE_ADDR         1
+#endif
+
+// Number of DMX channels the fixture uses. 2 = standard, 3 = fine-dimmer.
+#ifndef DMX_NUM_CH
+#define DMX_NUM_CH            2
+#endif
+
+// Total universe slots to transmit (must cover last used channel).
+#ifndef DMX_UNIVERSE_SIZE
+#define DMX_UNIVERSE_SIZE     (DMX_BASE_ADDR + DMX_NUM_CH - 1)
+#endif
+
 #define DMX_CH_MASTER        (DMX_BASE_ADDR)
-#define DMX_CH_STROBE        (DMX_BASE_ADDR + 1)
+#define DMX_CH_FINE          (DMX_BASE_ADDR + 1)   // only active in 3-CH mode
+#define DMX_CH_STROBE        (DMX_BASE_ADDR + DMX_NUM_CH - 1)
 
 // Alias for live-compose intensity command
 #define DMX_CH_INTENSITY      DMX_CH_MASTER

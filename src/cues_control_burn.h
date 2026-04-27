@@ -1,278 +1,297 @@
-#pragma once
+﻿#pragma once
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Cue list — CONTROLLED BURN  (32 min · 30 fps)
+// Cue list — CONTROLLED BURN  (32 min · 30fps)  v1
 // Varytec LED Theater Spot 50 3200K  (2-channel DMX mode)
 // Julian Charrière · CORRER · Venice 2026
 //
-// Fixture: 1× COB LED 50W, 3200K warm white, Fresnel lens.
-//          All 4 fixtures share DMX address 001, 2-channel mode.
-//   CH 1 = Master dimmer  ( 0 = off, 255 = full )
-//   CH 2 = Strobe         ( 0 = off, 4-255 = slow → fast )
+//   Fixture minimum visible threshold: DMX 22  (below = physically dark)
+//   Floor glow = DMX 22.  Hard black = DMX 0.
+//   Lamp apex = DMX 115 at 23:24 (longest true dark valley 21:57–24:33).
 //
-// Format: { HH, MM, SS, FF, fadeMs, { {ch,val}, ... }, numChannels }
+// ── COMPOSITIONAL STRATEGY — FIRE COUNTERPOINT ───────────────────────────────
+//
+//   Source: 32×18 spatial luma extraction (analyze_movie_luma.py)
+//   Metric: p95 per second — captures brief fire flashes that mean average misses.
+//
+//   True dark windows (lamp CAN be bright):
+//     00:00–05:12  (313s)  — pure dark opening — slow atmospheric build
+//     06:48–08:45  (118s)  — dark between fire flashes
+//     08:47–09:37   (51s)  — short dark gap
+//     09:39–11:19  (101s)  — dark before major burn 1
+//     14:57–15:39   (43s)  — brief pause
+//     16:32–17:07   (36s)  — brief pause
+//     17:41–18:46   (66s)  — dark between fire clusters
+//     18:48–19:27   (40s)  — dark gap
+//     19:58–20:31   (34s)  — dark gap
+//     21:57–24:33  (157s)  — LONGEST DARK — LAMP APEX HERE
+//     24:36–26:27  (112s)  — long dark tail
+//     26:51–29:00  (130s)  — long dark final valley
+//
+//   Fire event zones (lamp MUST be dark — pre-empt 6–10s before each cluster):
+//     05:13–06:04  brief fire sparks (peak 255) — first fire
+//     06:16–06:47  second cluster (peak 212)
+//     07:01–07:26  scattered sparks (peak 107)
+//     08:45–08:46  isolated flash (peak 178)
+//     09:37–09:41  brief flash (peak 91)
+//     11:19–12:57  MAJOR BURN 1 — sustained fire (peak 255)
+//     13:23–14:51  MAJOR BURN 2 — dense fire (peak 247)
+//     15:40–16:03  fire cluster (peak 253)
+//     16:08–16:31  sustained fire (peak 219)
+//     17:08–17:40  dense cluster (peak 231)
+//     18:47–18:52  isolated flash (peak 191)
+//     19:28–21:56  scattered rapid fire bursts (peaks 41–226)
+//     24:33–24:35  brief flash
+//     26:28–26:50  fire cluster (peak 150)
+//     29:01–30:25  final dense fire (peak 237)
+//
+//   RULE: Every fire zone → lamp FAST DIP to 0 (3–8s pre-empt).
+//         Lamp recovers slowly in dark valleys (10–20s). Floor ~22.
+//         No lamp brightness during any fire. The lamp IS the shadow of the fire.
+//
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include "dmx_controller.h"
 #include "../include/config.h"
 
-// Shorthand: V(dim, strobe) — 2 channels only
+// Shorthand: V(dim, strobe) — 3-channel mode (Master / Fine / Strobe)
+// Fine dimmer = 0: no fractional add above the master coarse value.
 #define V(d, s) \
-    { {DMX_CH_MASTER,(d)}, {DMX_CH_STROBE,(s)} }, 2
+    { {DMX_CH_MASTER,(d)}, {DMX_CH_FINE,0}, {DMX_CH_STROBE,(s)} }, 3
 
 static const DMXCue CUE_LIST[] = {
 
-    // ===================================================================
-    //  OPENING — Emerge from black  (0:00 – 0:45)
-    // ===================================================================
-
-    // 00:00:00:00  Hard black at loop start
-    { 0, 0, 0, 0,      0,  V(0, 0) },
-
-    // 00:00:05:00  First breath: slow warm rise (12 s)
-    { 0, 0, 5, 0,  12000,  V(70, 0) },
-
-    // 00:00:25:00  Continue rising — settle into the space (10 s)
-    { 0, 0, 25, 0, 10000,  V(160, 0) },
-
-    // 00:00:45:00  Arrive at comfortable mid-bright (6 s)
-    { 0, 0, 45, 0,  6000,  V(210, 0) },
-
-    // ===================================================================
-    //  STEADY WARMTH — Room settles  (0:45 – 3:00)
-    // ===================================================================
-
-    // 00:01:30:00  Gentle exhale — breathe down slightly (8 s)
-    { 0, 1, 30, 0,  8000,  V(170, 0) },
-
-    // 00:02:15:00  Breathe back up (7 s)
-    { 0, 2, 15, 0,  7000,  V(220, 0) },
-
-    // ===================================================================
-    //  FIRST BREATHING CYCLE  (3:00 – 7:00)
-    // ===================================================================
-
-    // 00:03:00:00  Deep exhale
-    { 0, 3, 0, 0,   8000,  V(110, 0) },
-
-    // 00:03:20:00  Inhale
-    { 0, 3, 20, 0,  7000,  V(230, 0) },
-
-    // 00:04:00:00  Exhale deeper
-    { 0, 4, 0, 0,   9000,  V(80, 0) },
-
-    // 00:04:25:00  Inhale full
-    { 0, 4, 25, 0,  7000,  V(255, 0) },
-
-    // 00:05:10:00  Exhale
-    { 0, 5, 10, 0,  8000,  V(100, 0) },
-
-    // 00:05:40:00  Inhale — linger at bright
-    { 0, 5, 40, 0,  7000,  V(245, 0) },
-
-    // 00:06:30:00  Exhale long
-    { 0, 6, 30, 0, 10000,  V(90, 0) },
-
-    // ===================================================================
-    //  PULSE SECTION — Tension rising  (7:00 – 10:30)
-    // ===================================================================
-
-    // 00:07:00:00  Quick rise
-    { 0, 7, 0, 0,   1500,  V(230, 0) },
-
-    // 00:07:20:00  Drop fast
-    { 0, 7, 20, 0,   800,  V(50, 0) },
-
-    // 00:07:30:00  Snap up
-    { 0, 7, 30, 0,   600,  V(240, 0) },
-
-    // 00:07:50:00  Slow fall
-    { 0, 7, 50, 0,  6000,  V(130, 0) },
-
-    // 00:08:30:00  Slow rise
-    { 0, 8, 30, 0,  5000,  V(210, 0) },
-
-    // 00:09:10:00  Pulse down
-    { 0, 9, 10, 0,  2000,  V(70, 0) },
-
-    // 00:09:30:00  Pulse up
-    { 0, 9, 30, 0,  1500,  V(250, 0) },
-
-    // 00:10:00:00  Settle mid
-    { 0, 10, 0, 0,  4000,  V(180, 0) },
-
-    // ===================================================================
-    //  FIRST ACCENT — Impact  (10:30 – 13:00)
-    // ===================================================================
-
-    // 00:10:30:00  Sharp rise to full (0.4 s snap)
-    { 0, 10, 30, 0,  400,  V(255, 0) },
-
-    // 00:10:33:00  Cut to near-black
-    { 0, 10, 33, 0,  300,  V(15, 0) },
-
-    // 00:10:35:00  Flash full
-    { 0, 10, 35, 0,  250,  V(255, 0) },
-
-    // 00:10:38:00  Settle to bright (2 s)
-    { 0, 10, 38, 0, 2000,  V(200, 0) },
-
-    // 00:11:10:00  Breathe down
-    { 0, 11, 10, 0, 6000,  V(90, 0) },
-
-    // 00:11:50:00  Rise
-    { 0, 11, 50, 0, 5000,  V(210, 0) },
-
-    // 00:12:30:00  Hold warm
-    { 0, 12, 30, 0, 3000,  V(190, 0) },
-
-    // ===================================================================
-    //  VERY SLOW FLICKER — Barely-visible texture  (13:00 – 15:30)
-    // ===================================================================
-
-    // 00:13:00:00  Build intensity + activate slowest strobe (ch2=6: barely
-    //              visible irregular pulse, gives organic film-flicker feel)
-    { 0, 13, 0, 0,  3000,  V(210, 6) },
-
-    // 00:13:40:00  Increase strobe slightly (ch2=14)
-    { 0, 13, 40, 0, 2000,  V(230, 14) },
-
-    // 00:14:10:00  Medium strobe (ch2=40) + slightly dimmer master
-    { 0, 14, 10, 0, 1000,  V(200, 40) },
-
-    // 00:14:40:00  Kill strobe, recover warm glow (3 s)
-    { 0, 14, 40, 0, 3000,  V(230, 0) },
-
-    // ===================================================================
-    //  CALM CENTRE — Meditative hold  (15:30 – 20:00)
-    // ===================================================================
-
-    // 00:15:30:00  Settle to resting level (8 s)
-    { 0, 15, 30, 0, 8000,  V(190, 0) },
-
-    // 00:16:30:00  Slow exhale
-    { 0, 16, 30, 0, 9000,  V(140, 0) },
-
-    // 00:17:30:00  Slow inhale
-    { 0, 17, 30, 0, 9000,  V(220, 0) },
-
-    // 00:18:30:00  Exhale
-    { 0, 18, 30, 0, 8000,  V(150, 0) },
-
-    // 00:19:20:00  Inhale slow
-    { 0, 19, 20, 0, 8000,  V(230, 0) },
-
-    // ===================================================================
-    //  SECOND BREATHING CYCLE — Deeper  (20:00 – 24:00)
-    // ===================================================================
-
-    // 00:20:00:00  Drop low — long (10 s)
-    { 0, 20, 0, 0,  10000, V(50, 0) },
-
-    // 00:20:45:00  Rise slowly (9 s)
-    { 0, 20, 45, 0,  9000, V(190, 0) },
-
-    // 00:21:30:00  Drop again deeper (9 s)
-    { 0, 21, 30, 0,  9000, V(30, 0) },
-
-    // 00:22:20:00  Rise to near-full (8 s)
-    { 0, 22, 20, 0,  8000, V(245, 0) },
-
-    // 00:23:10:00  Gentle fall (6 s)
-    { 0, 23, 10, 0,  6000, V(160, 0) },
-
-    // ===================================================================
-    //  CLIMAX BUILD  (24:00 – 28:00)
-    // ===================================================================
-
-    // 00:24:00:00  Start climbing (4 s)
-    { 0, 24, 0, 0,   4000, V(210, 0) },
-
-    // 00:24:30:00  Full (2 s)
-    { 0, 24, 30, 0,  2000, V(255, 0) },
-
-    // 00:24:45:00  Cut black
-    { 0, 24, 45, 0,   350, V(10, 0) },
-
-    // 00:24:47:00  Snap full
-    { 0, 24, 47, 0,   300, V(255, 0) },
-
-    // 00:24:50:00  Hold (2 s)
-    { 0, 24, 50, 0,  2000, V(255, 0) },
-
-    // 00:25:00:00  Slow drop to mid (5 s)
-    { 0, 25, 0, 0,   5000, V(160, 0) },
-
-    // 00:25:30:00  Rise again (4 s)
-    { 0, 25, 30, 0,  4000, V(255, 0) },
-
-    // 00:25:50:00  Fast strobe burst (ch2=80, 0.6 s duration)
-    { 0, 25, 50, 0,   400, V(255, 80) },
-
-    // 00:25:54:00  Kill strobe (0.5 s)
-    { 0, 25, 54, 0,   500, V(240, 0) },
-
-    // 00:26:20:00  Drop mid (3 s)
-    { 0, 26, 20, 0,  3000, V(150, 0) },
-
-    // 00:26:50:00  Rise (4 s)
-    { 0, 26, 50, 0,  4000, V(230, 0) },
-
-    // ===================================================================
-    //  FLICKER / TENSION  (27:00 – 29:30)
-    // ===================================================================
-
-    // 00:27:00:00  Fast cut to low
-    { 0, 27, 0, 0,    800, V(55, 0) },
-
-    // 00:27:06:00  Flash up
-    { 0, 27, 6, 0,    450, V(255, 0) },
-
-    // 00:27:11:00  Cut down
-    { 0, 27, 11, 0,   600, V(35, 0) },
-
-    // 00:27:17:00  Flash
-    { 0, 27, 17, 0,   350, V(240, 0) },
-
-    // 00:27:22:00  Cut low
-    { 0, 27, 22, 0,   500, V(60, 0) },
-
-    // 00:27:30:00  Slow return to warm (6 s)
-    { 0, 27, 30, 0,  6000, V(200, 0) },
-
-    // 00:28:05:00  Very slow strobe — tension (ch2=8)
-    { 0, 28, 5, 0,   2000, V(220, 8) },
-
-    // 00:28:40:00  Kill strobe, hold steady (2 s)
-    { 0, 28, 40, 0,  2000, V(210, 0) },
-
-    // 00:29:05:00  One final bright moment (4 s)
-    { 0, 29, 5, 0,   4000, V(255, 0) },
-
-    // 00:29:25:00  Last flicker — quick low
-    { 0, 29, 25, 0,   700, V(100, 0) },
-
-    // 00:29:29:00  Flash
-    { 0, 29, 29, 0,   350, V(255, 0) },
-
-    // 00:29:33:00  Settle warm (2 s)
-    { 0, 29, 33, 0,  2000, V(185, 0) },
-
-    // ===================================================================
-    //  ENDING — Long fade to black  (30:00 – 31:59)
-    // ===================================================================
-
-    // 00:30:00:00  Begin slow fade out (18 s)
-    { 0, 30, 0, 0,  18000, V(35, 0) },
-
-    // 00:30:40:00  Continue to near-black (12 s)
-    { 0, 30, 40, 0, 12000, V(8, 0) },
-
-    // 00:31:10:00  Final fade — blackout (10 s)
-    { 0, 31, 10, 0, 10000, V(0, 0) },
-
-    // 00:31:55:00  Safety blackout snap
-    { 0, 31, 55, 0,     0, V(0, 0) },
+    // =========================================================================
+    // OPENING — 00:00–05:12  PURE DARK (313s)
+    // The room is still. Slow ember-like build from nothing over 5 minutes.
+    // =========================================================================
+
+    { 0,  0,  0, 0,      0, V(  0, 0) },   // hard black at start
+    { 0,  0,  8, 0,  20000, V( 22, 0) },   // 20s slow ember rise to floor
+    { 0,  0, 28, 0,  18000, V( 33, 0) },   // 18s slow rise
+    { 0,  0, 46, 0,  12000, V( 28, 0) },   // 12s settle
+    { 0,  0, 58, 0,  15000, V( 38, 0) },   // 15s breathe up
+    { 0,  1, 13, 0,  10000, V( 30, 0) },   // 10s breathe down
+    { 0,  1, 23, 0,  20000, V( 45, 0) },   // 20s slow climb
+    { 0,  1, 43, 0,  12000, V( 38, 0) },   // 12s exhale
+    { 0,  1, 55, 0,  17000, V( 52, 0) },   // 17s breathe up
+    { 0,  2, 12, 0,  11000, V( 43, 0) },   // 11s settle
+    { 0,  2, 23, 0,  19000, V( 58, 0) },   // 19s slow climb
+    { 0,  2, 42, 0,  13000, V( 47, 0) },   // 13s exhale
+    { 0,  2, 55, 0,  16000, V( 63, 0) },   // 16s breathe up
+    { 0,  3, 11, 0,  14000, V( 53, 0) },   // 14s exhale
+    { 0,  3, 25, 0,  18000, V( 70, 0) },   // 18s slow rise — tension building
+    { 0,  3, 43, 0,  12000, V( 58, 0) },   // 12s exhale
+    { 0,  3, 55, 0,  15000, V( 75, 0) },   // 15s breathe up
+    { 0,  4, 10, 0,  13000, V( 63, 0) },   // 13s exhale
+    { 0,  4, 23, 0,  15000, V( 78, 0) },   // 15s near-peak of opening
+    { 0,  4, 38, 0,  10000, V( 68, 0) },   // 10s settle
+    { 0,  4, 48, 0,   8000, V( 78, 0) },   // 8s hold
+
+    // Pre-empt first fire cluster at 05:13 — dip hard 17s ahead
+    { 0,  4, 56, 0,   7000, V( 40, 0) },   // 7s fast fall
+    { 0,  5,  3, 0,   5000, V(  0, 0) },   // 5s snap to black before fire
+
+    // =========================================================================
+    // FIRST FIRE CLUSTER — 05:13–07:26  (spikes 41–255)
+    // Lamp stays completely dark. The fire owns the room.
+    // =========================================================================
+
+    { 0,  5,  8, 0,  58000, V(  0, 0) },   // 58s hold dark through all fire spikes to 06:06
+
+    // =========================================================================
+    // DARK VALLEY 1 — 06:48–08:45  (118s)
+    // Fire still at 06:16–06:47, 07:01–07:26, 08:45. Recover cautiously.
+    // =========================================================================
+
+    { 0,  6, 48, 0,  12000, V( 22, 0) },   // 12s slow rise to floor
+    { 0,  7,  0, 0,   8000, V(  0, 0) },   // 8s dip for 07:01 fire flash
+    { 0,  7,  8, 0,  22000, V(  0, 0) },   // hold dark through 07:10–07:26 sparks
+    { 0,  7, 30, 0,  15000, V( 22, 0) },   // 15s cautious rise to floor
+    { 0,  7, 45, 0,  16000, V( 35, 0) },   // 16s breathe up
+    { 0,  8,  1, 0,  12000, V( 27, 0) },   // 12s exhale
+    { 0,  8, 13, 0,  15000, V( 40, 0) },   // 15s breathe up
+    { 0,  8, 28, 0,   7000, V(  0, 0) },   // 7s snap dark — pre-empt 08:45 flash
+    { 0,  8, 35, 0,  15000, V(  0, 0) },   // hold dark through 08:45–08:46 + 09:08
+
+    // =========================================================================
+    // DARK VALLEY 2 — 08:47–09:37  (51s)
+    // Small recovery window, then flash at 09:37–09:41.
+    // =========================================================================
+
+    { 0,  8, 50, 0,  15000, V( 22, 0) },   // 15s rise to floor
+    { 0,  9,  5, 0,  12000, V( 30, 0) },   // 12s breathe up
+    { 0,  9, 17, 0,   8000, V(  0, 0) },   // 8s snap dark before 09:37 flash
+    { 0,  9, 25, 0,  20000, V(  0, 0) },   // hold dark through 09:37–09:41
+
+    // =========================================================================
+    // DARK VALLEY 3 — 09:39–11:19  (101s)
+    // Long clear window. Lamp breathes and builds. Black by 11:11.
+    // =========================================================================
+
+    { 0,  9, 45, 0,  14000, V( 22, 0) },   // 14s rise to floor
+    { 0,  9, 59, 0,  16000, V( 42, 0) },   // 16s breathe up
+    { 0, 10, 15, 0,  12000, V( 33, 0) },   // 12s exhale
+    { 0, 10, 27, 0,  16000, V( 50, 0) },   // 16s breathe up
+    { 0, 10, 43, 0,  13000, V( 40, 0) },   // 13s exhale
+    { 0, 10, 56, 0,   9000, V( 48, 0) },   // 9s small peak
+    { 0, 11,  5, 0,   8000, V(  0, 0) },   // 8s fast snap to black — Major Burn 1 incoming
+
+    // =========================================================================
+    // MAJOR BURN 1 — 11:19–12:57  (peak 255 sustained)
+    // Total blackout. Lamp is nothing.
+    // =========================================================================
+
+    { 0, 11, 13, 0, 110000, V(  0, 0) },   // 110s hard black through entire burn
+
+    // =========================================================================
+    // BRIEF RECOVERY — 12:57–13:23  (26s between burns)
+    // Very short gap, Major Burn 2 at 13:23. Show floor only.
+    // =========================================================================
+
+    { 0, 13,  3, 0,  10000, V( 22, 0) },   // 10s quick rise to floor only
+    { 0, 13, 13, 0,  10000, V(  0, 0) },   // 10s snap to black before Major Burn 2
+
+    // =========================================================================
+    // MAJOR BURN 2 — 13:23–14:51  (peak 247 dense)
+    // Total blackout again.
+    // =========================================================================
+
+    { 0, 13, 23, 0,  88000, V(  0, 0) },   // 88s hard black through entire burn
+
+    // =========================================================================
+    // DARK VALLEY 4 — 14:57–15:39  (43s)
+    // Short window before fire at 15:40. Quick breathe only.
+    // =========================================================================
+
+    { 0, 14, 51, 0,  12000, V( 22, 0) },   // 12s rise to floor
+    { 0, 15,  3, 0,  12000, V( 32, 0) },   // 12s small breath
+    { 0, 15, 15, 0,  10000, V( 22, 0) },   // 10s exhale back
+    { 0, 15, 25, 0,   9000, V(  0, 0) },   // 9s snap dark before 15:40 fire
+
+    // =========================================================================
+    // FIRE CLUSTER — 15:40–16:31  (fire 15:40–16:03, gap 16:03–16:07, fire 16:08–16:31)
+    // Gap too short to react. Hold dark through entire stretch.
+    // =========================================================================
+
+    { 0, 15, 34, 0,  62000, V(  0, 0) },   // 62s black through 15:40→16:34 fire cluster
+
+    // =========================================================================
+    // DARK VALLEY 5 — 16:32–17:07  (36s)
+    // Very short. Pre-empt 17:08 cluster (snap at 17:02).
+    // =========================================================================
+
+    { 0, 16, 34, 0,  12000, V( 22, 0) },   // 12s rise to floor
+    { 0, 16, 46, 0,  10000, V( 30, 0) },   // 10s tiny breath
+    { 0, 16, 56, 0,   6000, V(  0, 0) },   // 6s snap dark before 17:08 cluster
+
+    // =========================================================================
+    // FIRE CLUSTER — 17:08–17:40  (peak 231)
+    // =========================================================================
+
+    { 0, 17,  2, 0,  44000, V(  0, 0) },   // 44s dark through cluster to 17:46
+
+    // =========================================================================
+    // DARK VALLEY 6 — 17:41–18:46  (66s)
+    // Longer recovery. Pre-empt 18:47 flash (snap at 18:41).
+    // =========================================================================
+
+    { 0, 17, 46, 0,  13000, V( 22, 0) },   // 13s rise to floor
+    { 0, 17, 59, 0,  14000, V( 38, 0) },   // 14s breathe up
+    { 0, 18, 13, 0,  12000, V( 28, 0) },   // 12s exhale
+    { 0, 18, 25, 0,  10000, V( 35, 0) },   // 10s breathe up
+    { 0, 18, 35, 0,   6000, V(  0, 0) },   // 6s snap dark before 18:47 flash
+
+    // =========================================================================
+    // FLASH — 18:47–18:52  brief
+    // DARK VALLEY 7 — 18:48–19:27  (40s)
+    // Pre-empt 19:28 fire.
+    // =========================================================================
+
+    { 0, 18, 41, 0,  10000, V(  0, 0) },   // hold dark through 18:47 flash
+    { 0, 18, 51, 0,  14000, V( 22, 0) },   // 14s rise to floor
+    { 0, 19,  5, 0,  11000, V( 30, 0) },   // 11s breath up
+    { 0, 19, 16, 0,   8000, V(  0, 0) },   // 8s snap dark before 19:28 cluster
+
+    // =========================================================================
+    // SCATTERED FIRE — 19:28–21:56  (many rapid bursts, peaks 41–226)
+    // Hold completely dark. This is the final approach to the great silence.
+    // =========================================================================
+
+    { 0, 19, 24, 0, 152000, V(  0, 0) },   // 152s total blackout through all scattered fire
+
+    // =========================================================================
+    // **** LAMP APEX — 21:57–24:33  LONGEST DARK (157s) ****
+    //
+    // The film has burned itself out. Deep silence.
+    // Lamp climbs slowly from nothing to its maximum, holds warm,
+    // then yields to the flash that resumes at 24:33.
+    // =========================================================================
+
+    { 0, 21, 56, 0,  18000, V( 22, 0) },   // 18s slow ember rise to floor
+    { 0, 22, 14, 0,  20000, V( 45, 0) },   // 20s climb — room breathes again
+    { 0, 22, 34, 0,  16000, V( 65, 0) },   // 16s climb
+    { 0, 22, 50, 0,  14000, V( 85, 0) },   // 14s climb
+    { 0, 23,  4, 0,  12000, V(100, 0) },   // 12s near-peak
+    { 0, 23, 16, 0,   8000, V(115, 0) },   // 8s APEX — DMX 115
+    { 0, 23, 24, 0,  14000, V( 95, 0) },   // 14s hold warm
+    { 0, 23, 38, 0,  12000, V(115, 0) },   // 12s second hold at apex
+    { 0, 23, 50, 0,  10000, V( 85, 0) },   // 10s slow descent
+    { 0, 24,  0, 0,  12000, V( 60, 0) },   // 12s descent — fire returning soon
+    { 0, 24, 12, 0,  11000, V( 35, 0) },   // 11s descent
+    { 0, 24, 23, 0,   8000, V(  0, 0) },   // 8s snap to black before 24:33 flash
+
+    // =========================================================================
+    // BRIEF FLASH — 24:33–24:35  (peak 173, 2s)
+    // DARK VALLEY 8 — 24:36–26:27  (112s)
+    // Long clear valley. Lamp breathes and recovers post-apex.
+    // Pre-empt fire at 26:28.
+    // =========================================================================
+
+    { 0, 24, 31, 0,   9000, V(  0, 0) },   // hold dark through flash
+    { 0, 24, 40, 0,  18000, V( 22, 0) },   // 18s slow rise to floor
+    { 0, 24, 58, 0,  16000, V( 40, 0) },   // 16s breathe up
+    { 0, 25, 14, 0,  14000, V( 30, 0) },   // 14s exhale
+    { 0, 25, 28, 0,  16000, V( 48, 0) },   // 16s breathe up
+    { 0, 25, 44, 0,  13000, V( 35, 0) },   // 13s exhale
+    { 0, 25, 57, 0,  15000, V( 45, 0) },   // 15s breathe up
+    { 0, 26, 12, 0,   8000, V(  0, 0) },   // 8s snap dark before 26:28 fire
+
+    // =========================================================================
+    // FIRE CLUSTER — 26:28–26:50  (peak 150)
+    // DARK VALLEY 9 — 26:51–29:00  (130s)
+    // Long final dark valley. Lamp slow recovery, building toward final fire.
+    // Pre-empt final fire cluster at 29:01.
+    // =========================================================================
+
+    { 0, 26, 20, 0,  35000, V(  0, 0) },   // 35s dark through 26:28–26:55 cluster
+    { 0, 26, 55, 0,  16000, V( 22, 0) },   // 16s slow rise
+    { 0, 27, 11, 0,  15000, V( 35, 0) },   // 15s breathe up
+    { 0, 27, 26, 0,  14000, V( 26, 0) },   // 14s exhale
+    { 0, 27, 40, 0,  16000, V( 42, 0) },   // 16s breathe up
+    { 0, 27, 56, 0,  13000, V( 30, 0) },   // 13s exhale
+    { 0, 28,  9, 0,  14000, V( 38, 0) },   // 14s breathe up
+    { 0, 28, 23, 0,  13000, V( 26, 0) },   // 13s exhale
+    { 0, 28, 36, 0,  11000, V( 33, 0) },   // 11s breathe — tension
+    { 0, 28, 47, 0,   7000, V(  0, 0) },   // 7s snap dark before final fire at 29:01
+
+    // =========================================================================
+    // FINAL FIRE — 29:01–30:25  (dense cluster, peak 237)
+    // Lamp stays dark as the composition burns to its end.
+    // =========================================================================
+
+    { 0, 28, 54, 0,  90000, V(  0, 0) },   // 90s dark through all final fire
+
+    // =========================================================================
+    // FADE OUT — 30:25–32:00
+    // Film cooling down. Lamp rises one last time, then fades to black.
+    // =========================================================================
+
+    { 0, 30, 24, 0,  20000, V( 22, 0) },   // 20s slow rise from ash
+    { 0, 30, 44, 0,  18000, V( 33, 0) },   // 18s breathe up
+    { 0, 31,  2, 0,  16000, V( 26, 0) },   // 16s exhale
+    { 0, 31, 18, 0,  20000, V( 35, 0) },   // 20s last warm breath
+    { 0, 31, 38, 0,  22000, V(  0, 0) },   // 22s final fade to black
 
 };  // END CUE_LIST
 
