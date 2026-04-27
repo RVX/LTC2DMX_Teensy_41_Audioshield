@@ -72,7 +72,7 @@ static bool     tcMute   = true;   // true = suppress TC printing (default ON)
 
 static struct { uint8_t h,m,s,f; bool valid; } lastTC = {0,0,0,0,false};
 
-struct RecMark { uint8_t h,m,s,f, intensity, strobe; uint16_t fadeMs; };
+struct RecMark { uint8_t h,m,s,f, intensity, strobe; uint32_t fadeMs; };
 static RecMark  recBuf[512];
 static uint16_t recCount = 0;
 
@@ -206,7 +206,7 @@ static void processCmd(const char* cmd) {
         RecMark& r=recBuf[recCount++];
         r.h=lastTC.h; r.m=lastTC.m; r.s=lastTC.s; r.f=lastTC.f;
         r.intensity=liveI; r.strobe=liveS;
-        r.fadeMs=(*a)?(uint16_t)atoi(a):0;
+        r.fadeMs=(*a)?(uint32_t)atoi(a):0;
         Serial.printf("Mark %u: %02u:%02u:%02u:%02u  I=%u S=%u fade=%ums\n",
                       recCount,r.h,r.m,r.s,r.f,r.intensity,r.strobe,r.fadeMs);
     }

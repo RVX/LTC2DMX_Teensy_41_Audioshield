@@ -28,7 +28,7 @@ struct DMXCue {
     uint8_t        minutes;
     uint8_t        seconds;
     uint8_t        frames;
-    uint16_t       fadeMs;                          // 0 = instant snap
+    uint32_t       fadeMs;                          // 0 = instant snap (max ~49 days)
     DMXCueChannel  channels[DMX_MAX_CUE_CHANNELS];
     uint8_t        numChannels;
 };

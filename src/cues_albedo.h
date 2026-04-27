@@ -13,37 +13,34 @@
 //   !! IMPORTANT — fixture minimum visible threshold !!
 //      The Varytec LED Theater Spot 50 COB LED requires ≥ DMX 22 on CH1
 //      before any light is visible. Below 22 the lamp is physically dark.
-//      → "barely glowing" trough floor = DMX 22  (~9%)
-//      → intentional hard black = DMX 0 (opening strikes, apex break)
+//      → trough floor = DMX 40 (~16%) — always visibly glowing warm
+//      → DMX 0 only at the very final fade-out
 //
 // Format: { HH, MM, SS, FF, fadeMs, { {ch,val}, ... }, numChannels }
 //
-// ── COMPOSITION ─────────────────────────────────────────────────────────────
+// ── COMPOSITION — ALBEDO ────────────────────────────────────────────────────
 //
-//   ALBEDO: the fraction of light reflected by a surface (snow, ice, glacier).
-//   Concept — slow sea-wave breath of reflected light. The light does not
-//   originate here; it arrives, bounces, recedes. Warm 3200K acts as trapped
-//   sunlight inside a white body.
+//   ALBEDO: the fraction of incident light reflected by a surface.
+//   Here: reflected sunlight inside a white body — glacier, ice, snow.
+//   The surface always holds some light. It breathes. It never fully dies.
 //
-//   Wave shape: asymmetric — fast flood (surge), slow ebb. 3–4 control points.
-//   Trough floor: DMX 22 (barely visible warm glow — the surface never goes
-//   fully cold until the very end).
-//   Peak arc: rises from DMX 58 (awakening) to DMX 235 / 92% (apex at 27:58).
+//   20 asymmetric sea-waves, continuous from 0:00:00.
+//   No hard cuts. No strobes. No silence. No darkness.
+//
+//   Wave shape: asymmetric — fast flood (~25%), slow ebb (~65%).
+//   Each wave has 4 control points: rise → surge → shoulder → ebb.
+//   Floor: DMX 40 throughout (well above fixture threshold).
+//   Apex break: snaps to floor (DMX 40), not to black.
 //
 //   Arc:
-//     0:00 –  0:55  Opening strikes  — 4 hard descending pulses, full black gaps
-//     0:55 –  5:15  Awakening        — floor 22, peaks 58→78
-//     5:15 – 13:38  Growing          — floor 22, peaks 92→138
-//    13:38 – 21:16  Building         — floor 22, peaks 122→178
-//    21:16 – 26:11  Pre-apex         — floor 22, peaks 188→208
-//    26:11 – 29:41  Apex             — floor 22→0 (break), peaks 215→235(92%)
-//    29:41 – 37:15  Recession        — floor 22→32, peaks 215→158
-//    37:15 – 42:36  Closing          — floor 35→45, peaks 128→60
-//    42:36 –        Final 45 s fade to black
-//
-//   Two brief strobe-texture moments (ch2=5, barely perceptible shimmer):
-//     pre-apex wave 14 peak  (~23:35)
-//     apex wave 17 shoulder  (~28:10) — just before the break
+//     0:00 –  6:12  Awakening  — floor 40, peaks 78→102
+//     6:12 – 15:17  Growing    — floor 40, peaks 102→142
+//    15:17 – 24:55  Building   — floor 40, peaks 142→185
+//    24:55 – 29:45  Apex zone  — floor 40, peaks 185→235 (92%)
+//                              apex REACHED at 0:27:58 — break to DMX 40
+//    29:45 – 38:00  Recession  — floor 40→45, peaks 215→140
+//    38:00 – 42:32  Closing    — floor 48→52, peaks 140→82
+//    42:32 –        Final 48 s fade to black
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include "dmx_controller.h"
@@ -54,225 +51,146 @@
 
 static const DMXCue CUE_LIST[] = {
 
-    // ── OPENING CHAOS  0:00:00 – 0:00:55 ────────────────────────────────────
-    //   Irregular burst-and-cut sequence.  No two intervals the same.
-    //   Mix of strobed / solid hits, one double-tap, one deceptive dim pop,
-    //   one sustained strobe run abruptly cut, then a dying stutter.
-    //   Ends in 39 s of hard silence before the sea-breath awakens.
-    //
-    //   Strobe ch2: 40 = light shimmer · 55 = medium · 65 = fast rattle
-    //   All gaps = explicit V(0,0) — hard black, not sub-threshold ambiguity.
-    //
-    //   Timecode → real-time:
-    //     :00:18 = 0.72s   :01:03 = 1.12s   :01:20 = 1.80s
-    //     :02:14 = 2.56s   :02:19 = 2.76s   :03:01 = 3.04s
-    //     :03:08 = 3.32s   :04:20 = 4.80s   :06:05 = 6.20s
-    //     :07:10 = 7.40s   :08:07 = 8.28s   :08:14 = 8.56s
-    //     :09:06 = 9.24s   :09:11 = 9.44s   :09:18 = 9.72s
-    //     :10:00 = 10.00s  :10:06 = 10.24s  :10:14 = 10.56s
-    //     :12:15 = 12.60s  :13:05 = 13.20s → fades → 16.20s black
+    // ── 0:00:00  GENTLE OPEN ────────────────────────────────────────────────
+    { 0,  0,  0, 0,  10000, V( 40, 0) },   // 10s warm fade-in to floor (→ 0:00:10)
 
-    { 0,  0,  0,  0,    100, V(  0,  0) },  // hard black
+    // ── AWAKENING  0:00:10 – 6:12  (floor 40, peaks 78→102) ─────────────────
 
-    // burst 1 — strobe hit, cut
-    { 0,  0,  0, 18,    100, V(220, 55) },  // 0.72s  86% + strobe
-    { 0,  0,  1,  3,    100, V(  0,  0) },  // 1.12s  cut black
+    // Wave 1  (0:00:10 → trough 0:02:05)  period 115s
+    { 0,  0, 10, 0,  28000, V( 62, 0) },   // 28s rise (→ 0:00:38)
+    { 0,  0, 38, 0,  12000, V( 78, 0) },   // 12s surge to peak (→ 0:00:50)
+    { 0,  0, 50, 0,   8000, V( 68, 0) },   // 8s shoulder (→ 0:00:58)
+    { 0,  0, 58, 0,  67000, V( 40, 0) },   // 67s ebb to floor (→ 0:02:05)
 
-    // burst 2 — solid, no strobe, different gap
-    { 0,  0,  1, 20,    100, V(195,  0) },  // 1.80s  76% solid
-    { 0,  0,  2,  0,    100, V(  0,  0) },  // 2.00s  cut black
+    // Wave 2  (0:02:05 → trough 0:04:05)  period 120s
+    { 0,  2,  5, 0,  28000, V( 68, 0) },   // 28s rise (→ 0:02:33)
+    { 0,  2, 33, 0,  12000, V( 85, 0) },   // 12s surge to peak (→ 0:02:45)
+    { 0,  2, 45, 0,   8000, V( 75, 0) },   // 8s shoulder (→ 0:02:53)
+    { 0,  2, 53, 0,  72000, V( 40, 0) },   // 72s ebb to floor (→ 0:04:05)
 
-    // burst 3 — double tap (unexpected second hit 5 frames later)
-    { 0,  0,  2, 14,    100, V(240,  0) },  // 2.56s  94% snap
-    { 0,  0,  2, 19,    100, V(  0,  0) },  // 2.76s  cut (5 frames)
-    { 0,  0,  3,  1,    100, V(215,  0) },  // 3.04s  84% double-tap
-    { 0,  0,  3,  8,   1500, V(  0,  0) },  // 3.32s  1.5s fade to black (→ 4.82s)
+    // Wave 3  (0:04:05 → trough 0:06:12)  period 127s
+    { 0,  4,  5, 0,  28000, V( 72, 0) },   // 28s rise (→ 0:04:33)
+    { 0,  4, 33, 0,  13000, V( 92, 0) },   // 13s surge to peak (→ 0:04:46)
+    { 0,  4, 46, 0,   8000, V( 82, 0) },   // 8s shoulder (→ 0:04:54)
+    { 0,  4, 54, 0,  78000, V( 40, 0) },   // 78s ebb to floor (→ 0:06:12)
 
-    // burst 4 — sustained strobe run, abrupt cut
-    { 0,  0,  4, 20,    200, V(175, 65) },  // 4.80s  strobe run begins
-    { 0,  0,  6,  5,    400, V(145, 65) },  // 6.20s  sustain, dims slightly
-    { 0,  0,  7, 10,    100, V(  0,  0) },  // 7.40s  abrupt cut to black
+    // ── GROWING  6:12 – 15:17  (floor 40, peaks 102→142) ────────────────────
 
-    // burst 5 — deceptive dim pop (small where big was expected)
-    { 0,  0,  8,  7,    100, V( 72,  0) },  // 8.28s  28% dim — surprise quiet
-    { 0,  0,  8, 14,    100, V(  0,  0) },  // 8.56s  cut black
+    // Wave 4  (0:06:12 → trough 0:08:22)  period 130s
+    { 0,  6, 12, 0,  30000, V( 80, 0) },   // 30s rise (→ 0:06:42)
+    { 0,  6, 42, 0,  14000, V(102, 0) },   // 14s surge to peak (→ 0:06:56)
+    { 0,  6, 56, 0,   9000, V( 92, 0) },   // 9s shoulder (→ 0:07:05)
+    { 0,  7,  5, 0,  77000, V( 40, 0) },   // 77s ebb to floor (→ 0:08:22)
 
-    // burst 6 — fast triple stutter: big → cut → medium+strobe → cut → small
-    { 0,  0,  9,  6,    100, V(205,  0) },  // 9.24s  80% big
-    { 0,  0,  9, 11,    100, V(  0,  0) },  // 9.44s  cut (5 frames)
-    { 0,  0,  9, 18,    100, V(165, 40) },  // 9.72s  65% + light strobe
-    { 0,  0, 10,  0,    100, V(  0,  0) },  // 10.00s cut (7 frames)
-    { 0,  0, 10,  6,    100, V(118,  0) },  // 10.24s 46% smaller, no strobe
-    { 0,  0, 10, 14,   2000, V(  0,  0) },  // 10.56s 2s fade to black (→ 12.56s)
+    // Wave 5  (0:08:22 → trough 0:10:37)  period 135s
+    { 0,  8, 22, 0,  30000, V( 88, 0) },   // 30s rise (→ 0:08:52)
+    { 0,  8, 52, 0,  14000, V(112, 0) },   // 14s surge to peak (→ 0:09:06)
+    { 0,  9,  6, 0,   9000, V(102, 0) },   // 9s shoulder (→ 0:09:15)
+    { 0,  9, 15, 0,  82000, V( 40, 0) },   // 82s ebb to floor (→ 0:10:37)
 
-    // burst 7 — dying strobe, last gasp, slow fade out
-    { 0,  0, 12, 15,    300, V(105, 50) },  // 12.60s last strobe flash
-    { 0,  0, 13,  5,   3000, V(  0,  0) },  // 13.20s 3s fade to black (→ 16.20s)
+    // Wave 6  (0:10:37 → trough 0:12:54)  period 137s
+    { 0, 10, 37, 0,  30000, V( 95, 0) },   // 30s rise (→ 0:11:07)
+    { 0, 11,  7, 0,  16000, V(122, 0) },   // 16s surge to peak (→ 0:11:23)
+    { 0, 11, 23, 0,   9000, V(112, 0) },   // 9s shoulder (→ 0:11:32)
+    { 0, 11, 32, 0,  82000, V( 40, 0) },   // 82s ebb to floor (→ 0:12:54)
 
-    // ── 39 s hard silence — the surface settles ─────────────────────────────
+    // Wave 7  (0:12:54 → trough 0:15:17)  period 143s
+    { 0, 12, 54, 0,  32000, V(105, 0) },   // 32s rise (→ 0:13:26)
+    { 0, 13, 26, 0,  16000, V(132, 0) },   // 16s surge to peak (→ 0:13:42)
+    { 0, 13, 42, 0,   9000, V(122, 0) },   // 9s shoulder (→ 0:13:51)
+    { 0, 13, 51, 0,  86000, V( 40, 0) },   // 86s ebb to floor (→ 0:15:17)
 
-    // ── AWAKENING  0:00:55 – 5:15  (floor 22, peaks 58→78) ─────────────────
+    // ── BUILDING  15:17 – 24:55  (floor 40, peaks 142→185) ──────────────────
 
-    // Wave 1  (0:00:55 → trough 0:02:18)
-    { 0,  0, 55, 0,  18000, V( 40, 0) },   // 18s slow rise (→ 0:01:13)
-    { 0,  1, 13, 0,  14000, V( 58, 0) },   // 14s surge to peak (→ 0:01:27)
-    { 0,  1, 27, 0,   6000, V( 50, 0) },   // 6s shoulder (→ 0:01:33)
-    { 0,  1, 33, 0,  45000, V( 22, 0) },   // 45s long ebb to faint glow (→ 0:02:18)
+    // Wave 8  (0:15:17 → trough 0:17:45)  period 148s
+    { 0, 15, 17, 0,  32000, V(112, 0) },   // 32s rise (→ 0:15:49)
+    { 0, 15, 49, 0,  18000, V(142, 0) },   // 18s surge to peak (→ 0:16:07)
+    { 0, 16,  7, 0,  10000, V(132, 0) },   // 10s shoulder (→ 0:16:17)
+    { 0, 16, 17, 0,  88000, V( 40, 0) },   // 88s ebb to floor (→ 0:17:45)
 
-    // Wave 2  (0:02:18 → trough 0:03:48)
-    { 0,  2, 18, 0,  20000, V( 48, 0) },   // 20s rise (→ 0:02:38)
-    { 0,  2, 38, 0,  15000, V( 68, 0) },   // 15s surge to peak (→ 0:02:53)
-    { 0,  2, 53, 0,   7000, V( 60, 0) },   // 7s shoulder (→ 0:03:00)
-    { 0,  3,  0, 0,  48000, V( 22, 0) },   // 48s ebb to faint glow (→ 0:03:48)
+    // Wave 9  (0:17:45 → trough 0:20:10)  period 145s
+    { 0, 17, 45, 0,  32000, V(118, 0) },   // 32s rise (→ 0:18:17)
+    { 0, 18, 17, 0,  18000, V(152, 0) },   // 18s surge to peak (→ 0:18:35)
+    { 0, 18, 35, 0,  10000, V(142, 0) },   // 10s shoulder (→ 0:18:45)
+    { 0, 18, 45, 0,  85000, V( 40, 0) },   // 85s ebb to floor (→ 0:20:10)
 
-    // Wave 3  (0:03:48 → trough 0:05:15)
-    { 0,  3, 48, 0,  20000, V( 55, 0) },   // 20s rise (→ 0:04:08)
-    { 0,  4,  8, 0,  14000, V( 78, 0) },   // 14s surge to peak (→ 0:04:22)
-    { 0,  4, 22, 0,   7000, V( 68, 0) },   // 7s shoulder (→ 0:04:29)
-    { 0,  4, 29, 0,  46000, V( 22, 0) },   // 46s ebb to faint glow (→ 0:05:15)
+    // Wave 10  (0:20:10 → trough 0:22:35)  period 145s
+    { 0, 20, 10, 0,  32000, V(125, 0) },   // 32s rise (→ 0:20:42)
+    { 0, 20, 42, 0,  18000, V(162, 0) },   // 18s surge to peak (→ 0:21:00)
+    { 0, 21,  0, 0,  10000, V(152, 0) },   // 10s shoulder (→ 0:21:10)
+    { 0, 21, 10, 0,  85000, V( 40, 0) },   // 85s ebb to floor (→ 0:22:35)
 
-    // ── GROWING  5:15 – 13:38  (floor 22, peaks 92→138) ───────────────────
+    // Wave 11  (0:22:35 → trough 0:24:55)  period 140s
+    { 0, 22, 35, 0,  30000, V(132, 0) },   // 30s rise (→ 0:23:05)
+    { 0, 23,  5, 0,  18000, V(172, 0) },   // 18s surge to peak (→ 0:23:23)
+    { 0, 23, 23, 0,  10000, V(162, 0) },   // 10s shoulder (→ 0:23:33)
+    { 0, 23, 33, 0,  82000, V( 40, 0) },   // 82s ebb to floor (→ 0:24:55)
 
-    // Wave 4  (5:15 → trough 6:51)
-    { 0,  5, 15, 0,  22000, V( 70, 0) },   // 22s rise (→ 0:05:37)
-    { 0,  5, 37, 0,  16000, V( 92, 0) },   // 16s surge to peak (→ 0:05:53)
-    { 0,  5, 53, 0,   8000, V( 82, 0) },   // 8s shoulder (→ 0:06:01)
-    { 0,  6,  1, 0,  50000, V( 22, 0) },   // 50s ebb to faint glow (→ 0:06:51)
+    // ── APEX ZONE  24:55 – 29:45  (floor 40, peaks 185→235) ─────────────────
 
-    // Wave 5  (6:51 → trough 8:29)
-    { 0,  6, 51, 0,  22000, V( 80, 0) },   // 22s rise (→ 0:07:13)
-    { 0,  7, 13, 0,  16000, V(105, 0) },   // 16s surge to peak (→ 0:07:29)
-    { 0,  7, 29, 0,   8000, V( 95, 0) },   // 8s shoulder (→ 0:07:37)
-    { 0,  7, 37, 0,  52000, V( 22, 0) },   // 52s ebb to faint glow (→ 0:08:29)
+    // Wave 12  (0:24:55 → trough 0:27:00)  period 125s — shorter, rising urgency
+    { 0, 24, 55, 0,  26000, V(145, 0) },   // 26s rise (→ 0:25:21)
+    { 0, 25, 21, 0,  18000, V(185, 0) },   // 18s surge to peak (→ 0:25:39)
+    { 0, 25, 39, 0,  10000, V(175, 0) },   // 10s shoulder (→ 0:25:49)
+    { 0, 25, 49, 0,  71000, V( 40, 0) },   // 71s ebb to floor (→ 0:27:00)
 
-    // Wave 6  (8:29 → trough 10:09)
-    { 0,  8, 29, 0,  22000, V( 88, 0) },   // 22s rise (→ 0:08:51)
-    { 0,  8, 51, 0,  18000, V(115, 0) },   // 18s surge to peak (→ 0:09:09)
-    { 0,  9,  9, 0,   8000, V(105, 0) },   // 8s shoulder (→ 0:09:17)
-    { 0,  9, 17, 0,  52000, V( 22, 0) },   // 52s ebb to faint glow (→ 0:10:09)
+    // Wave 13 — ███ APEX ███  (0:27:00 → trough 0:29:45)
+    //   235 DMX reached at exactly 0:27:58
+    { 0, 27,  0, 0,  22000, V(178, 0) },   // 22s fast rise from floor (→ 0:27:22)
+    { 0, 27, 22, 0,  16000, V(212, 0) },   // 16s surge (→ 0:27:38)
+    { 0, 27, 38, 0,  20000, V(235, 0) },   // 20s ██ APEX 92% — reaches 235 at 0:27:58 ██
+    { 0, 27, 58, 0,  15000, V(228, 0) },   // 15s hold/shoulder at peak (→ 0:28:13)
+    { 0, 28, 13, 0,  10000, V( 40, 0) },   // 10s SNAP to floor — THE BREAK (→ 0:28:23)
+    { 0, 28, 23, 0,  15000, V(210, 0) },   // 15s aftershock surge (→ 0:28:38)
+    { 0, 28, 38, 0,  67000, V( 40, 0) },   // 67s long withdrawal to floor (→ 0:29:45)
 
-    // Wave 7  (10:09 → trough 11:53)
-    { 0, 10,  9, 0,  24000, V( 98, 0) },   // 24s rise (→ 0:10:33)
-    { 0, 10, 33, 0,  18000, V(125, 0) },   // 18s surge to peak (→ 0:10:51)
-    { 0, 10, 51, 0,   8000, V(115, 0) },   // 8s shoulder (→ 0:10:59)
-    { 0, 10, 59, 0,  54000, V( 22, 0) },   // 54s ebb to faint glow (→ 0:11:53)
+    // ── RECESSION  29:45 – 38:00  (floor 40→45, peaks 215→140) ─────────────
 
-    // Wave 8  (11:53 → trough 13:38)
-    { 0, 11, 53, 0,  24000, V(110, 0) },   // 24s rise (→ 0:12:17)
-    { 0, 12, 17, 0,  18000, V(138, 0) },   // 18s surge to peak (→ 0:12:35)
-    { 0, 12, 35, 0,   8000, V(128, 0) },   // 8s shoulder (→ 0:12:43)
-    { 0, 12, 43, 0,  55000, V( 22, 0) },   // 55s ebb to faint glow (→ 0:13:38)
+    // Wave 14  (0:29:45 → trough 0:31:45)  period 120s
+    { 0, 29, 45, 0,  26000, V(182, 0) },   // 26s rise (→ 0:30:11)
+    { 0, 30, 11, 0,  18000, V(215, 0) },   // 18s to post-apex peak (→ 0:30:29)
+    { 0, 30, 29, 0,  10000, V(205, 0) },   // 10s shoulder (→ 0:30:39)
+    { 0, 30, 39, 0,  66000, V( 40, 0) },   // 66s ebb (→ 0:31:45)
 
-    // ── BUILDING  13:38 – 21:16  (floor 22, peaks 122→178) ────────────────
+    // Wave 15  (0:31:45 → trough 0:33:50)  period 125s
+    { 0, 31, 45, 0,  26000, V(168, 0) },   // 26s rise (→ 0:32:11)
+    { 0, 32, 11, 0,  18000, V(198, 0) },   // 18s to peak (→ 0:32:29)
+    { 0, 32, 29, 0,  10000, V(188, 0) },   // 10s shoulder (→ 0:32:39)
+    { 0, 32, 39, 0,  71000, V( 40, 0) },   // 71s ebb (→ 0:33:50)
 
-    // Wave 9  (13:38 → trough 15:32)
-    { 0, 13, 38, 0,  26000, V(122, 0) },   // 26s rise (→ 0:14:04)
-    { 0, 14,  4, 0,  20000, V(152, 0) },   // 20s surge to peak (→ 0:14:24)
-    { 0, 14, 24, 0,  10000, V(142, 0) },   // 10s shoulder (→ 0:14:34)
-    { 0, 14, 34, 0,  58000, V( 22, 0) },   // 58s ebb to faint glow (→ 0:15:32)
+    // Wave 16  (0:33:50 → trough 0:35:55)  period 125s
+    { 0, 33, 50, 0,  26000, V(152, 0) },   // 26s rise (→ 0:34:16)
+    { 0, 34, 16, 0,  18000, V(180, 0) },   // 18s to peak (→ 0:34:34)
+    { 0, 34, 34, 0,  10000, V(170, 0) },   // 10s shoulder (→ 0:34:44)
+    { 0, 34, 44, 0,  71000, V( 42, 0) },   // 71s ebb — floor rising (→ 0:35:55)
 
-    // Wave 10  (15:32 → trough 17:26)
-    { 0, 15, 32, 0,  26000, V(132, 0) },   // 26s rise (→ 0:15:58)
-    { 0, 15, 58, 0,  20000, V(162, 0) },   // 20s surge to peak (→ 0:16:18)
-    { 0, 16, 18, 0,  10000, V(152, 0) },   // 10s shoulder (→ 0:16:28)
-    { 0, 16, 28, 0,  58000, V( 22, 0) },   // 58s ebb to faint glow (→ 0:17:26)
+    // Wave 17  (0:35:55 → trough 0:38:00)  period 125s
+    { 0, 35, 55, 0,  26000, V(138, 0) },   // 26s rise (→ 0:36:21)
+    { 0, 36, 21, 0,  18000, V(162, 0) },   // 18s to peak (→ 0:36:39)
+    { 0, 36, 39, 0,  10000, V(152, 0) },   // 10s shoulder (→ 0:36:49)
+    { 0, 36, 49, 0,  71000, V( 45, 0) },   // 71s ebb — floor rising (→ 0:38:00)
 
-    // Wave 11  (17:26 → trough 19:20)
-    { 0, 17, 26, 0,  26000, V(140, 0) },   // 26s rise (→ 0:17:52)
-    { 0, 17, 52, 0,  20000, V(170, 0) },   // 20s surge to peak (→ 0:18:12)
-    { 0, 18, 12, 0,  10000, V(160, 0) },   // 10s shoulder (→ 0:18:22)
-    { 0, 18, 22, 0,  58000, V( 22, 0) },   // 58s ebb to faint glow (→ 0:19:20)
+    // ── CLOSING  38:00 – 42:32  (floor 48→52, peaks 140→82) ─────────────────
 
-    // Wave 12  (19:20 → trough 21:16)
-    { 0, 19, 20, 0,  28000, V(148, 0) },   // 28s rise (→ 0:19:48)
-    { 0, 19, 48, 0,  20000, V(178, 0) },   // 20s surge to peak (→ 0:20:08)
-    { 0, 20,  8, 0,  10000, V(168, 0) },   // 10s shoulder (→ 0:20:18)
-    { 0, 20, 18, 0,  58000, V( 22, 0) },   // 58s ebb to faint glow (→ 0:21:16)
+    // Wave 18  (0:38:00 → trough 0:40:00)  period 120s
+    { 0, 38,  0, 0,  24000, V(118, 0) },   // 24s rise (→ 0:38:24)
+    { 0, 38, 24, 0,  18000, V(140, 0) },   // 18s to peak (→ 0:38:42)
+    { 0, 38, 42, 0,  10000, V(130, 0) },   // 10s shoulder (→ 0:38:52)
+    { 0, 38, 52, 0,  68000, V( 48, 0) },   // 68s ebb — floor rising (→ 0:40:00)
 
-    // ── PRE-APEX TENSION  21:16 – 26:11  (floor 22, peaks 188→208) ─────────
+    // Wave 19  (0:40:00 → trough 0:41:50)  period 110s
+    { 0, 40,  0, 0,  22000, V( 90, 0) },   // 22s rise (→ 0:40:22)
+    { 0, 40, 22, 0,  16000, V(110, 0) },   // 16s to peak (→ 0:40:38)
+    { 0, 40, 38, 0,  10000, V(100, 0) },   // 10s shoulder (→ 0:40:48)
+    { 0, 40, 48, 0,  62000, V( 52, 0) },   // 62s ebb — floor rising (→ 0:41:50)
 
-    // Wave 13  (21:16 → trough 22:59)  — slightly shorter, more urgent
-    { 0, 21, 16, 0,  22000, V(155, 0) },   // 22s rise (→ 0:21:38)
-    { 0, 21, 38, 0,  18000, V(188, 0) },   // 18s surge to peak (→ 0:21:56)
-    { 0, 21, 56, 0,   8000, V(178, 0) },   // 8s shoulder (→ 0:22:04)
-    { 0, 22,  4, 0,  55000, V( 22, 0) },   // 55s ebb to faint glow (→ 0:22:59)
+    // Wave 20 — last whisper  (0:41:50 → fade 0:43:20)
+    { 0, 41, 50, 0,  20000, V( 68, 0) },   // 20s rise (→ 0:42:10)
+    { 0, 42, 10, 0,  14000, V( 82, 0) },   // 14s last peak (→ 0:42:24)
+    { 0, 42, 24, 0,   8000, V( 72, 0) },   // 8s shoulder (→ 0:42:32)
 
-    // Wave 14  (22:59 → trough 24:38)  — faint strobe shimmer at peak
-    { 0, 22, 59, 0,  20000, V(162, 0) },   // 20s rise (→ 0:23:19)
-    { 0, 23, 19, 0,  16000, V(195, 5) },   // 16s to peak — ch2=5 barely-visible shimmer (→ 0:23:35)
-    { 0, 23, 35, 0,   8000, V(185, 0) },   // 8s kill strobe + shoulder (→ 0:23:43)
-    { 0, 23, 43, 0,  55000, V( 22, 0) },   // 55s ebb to faint glow (→ 0:24:38)
-
-    // Wave 15  (24:38 → trough 26:11)  — apex approach
-    { 0, 24, 38, 0,  18000, V(172, 0) },   // 18s rise (→ 0:24:56)
-    { 0, 24, 56, 0,  15000, V(208, 0) },   // 15s surge to near-apex (→ 0:25:11)
-    { 0, 25, 11, 0,   8000, V(198, 0) },   // 8s shoulder (→ 0:25:19)
-    { 0, 25, 19, 0,  52000, V( 22, 0) },   // 52s ebb to faint glow (→ 0:26:11)
-
-    // ── APEX  26:11 – 29:41  (floor 22 / break=0, peaks 215→235) ───────────
-
-    // Wave 16  (26:11 → trough 27:44)
-    { 0, 26, 11, 0,  16000, V(182, 0) },   // 16s fast surge from near-black (→ 0:26:27)
-    { 0, 26, 27, 0,  14000, V(215, 0) },   // 14s to high peak (→ 0:26:41)
-    { 0, 26, 41, 0,   8000, V(205, 0) },   // 8s shoulder (→ 0:26:49)
-    { 0, 26, 49, 0,  55000, V( 22, 0) },   // 55s ebb to faint glow (→ 0:27:44)
-
-    // Wave 17  — ███ THE APEX ███  (27:44 → trough 29:41)
-    { 0, 27, 44, 0,  14000, V(195, 0) },   // 14s fast surge (→ 0:27:58)
-    { 0, 27, 58, 0,  12000, V(235, 0) },   // 12s ███ 92% APEX ███ (→ 0:28:10)
-    { 0, 28, 10, 0,  10000, V(225, 5) },   // 10s shoulder — ch2=5 shimmer (→ 0:28:20)
-    { 0, 28, 20, 0,   3000, V(  0, 0) },   // 3s SNAP to hard black — THE BREAK (→ 0:28:23)
-    { 0, 28, 23, 0,  18000, V(200, 0) },   // 18s surge back — aftershock (→ 0:28:41)
-    { 0, 28, 41, 0,  60000, V( 22, 0) },   // 60s long withdrawal to faint glow (→ 0:29:41)
-
-    // ── RECESSION  29:41 – 37:15  (floor 22→32, peaks 215→158) ─────────────
-
-    // Wave 18  (29:41 → trough 31:31)
-    { 0, 29, 41, 0,  20000, V(192, 0) },   // 20s rise (→ 0:30:01)
-    { 0, 30,  1, 0,  18000, V(215, 0) },   // 18s to post-apex peak (→ 0:30:19)
-    { 0, 30, 19, 0,  10000, V(205, 0) },   // 10s shoulder (→ 0:30:29)
-    { 0, 30, 29, 0,  62000, V( 22, 0) },   // 62s ebb (→ 0:31:31)
-
-    // Wave 19  (31:31 → trough 33:25)
-    { 0, 31, 31, 0,  22000, V(172, 0) },   // 22s rise (→ 0:31:53)
-    { 0, 31, 53, 0,  18000, V(198, 0) },   // 18s to peak (→ 0:32:11)
-    { 0, 32, 11, 0,  10000, V(188, 0) },   // 10s shoulder (→ 0:32:21)
-    { 0, 32, 21, 0,  64000, V( 25, 0) },   // 64s ebb — floor rising (→ 0:33:25)
-
-    // Wave 20  (33:25 → trough 35:21)
-    { 0, 33, 25, 0,  24000, V(152, 0) },   // 24s rise (→ 0:33:49)
-    { 0, 33, 49, 0,  18000, V(178, 0) },   // 18s to peak (→ 0:34:07)
-    { 0, 34,  7, 0,  10000, V(168, 0) },   // 10s shoulder (→ 0:34:17)
-    { 0, 34, 17, 0,  64000, V( 28, 0) },   // 64s ebb — floor rising (→ 0:35:21)
-
-    // Wave 21  (35:21 → trough 37:15)
-    { 0, 35, 21, 0,  24000, V(132, 0) },   // 24s rise (→ 0:35:45)
-    { 0, 35, 45, 0,  18000, V(158, 0) },   // 18s to peak (→ 0:36:03)
-    { 0, 36,  3, 0,  10000, V(148, 0) },   // 10s shoulder (→ 0:36:13)
-    { 0, 36, 13, 0,  62000, V( 32, 0) },   // 62s ebb — floor rising (→ 0:37:15)
-
-    // ── CLOSING  37:15 – 42:36  (floor 35→45, peaks 128→60) ────────────────
-
-    // Wave 22  (37:15 → trough 39:07)
-    { 0, 37, 15, 0,  24000, V(105, 0) },   // 24s rise (→ 0:37:39)
-    { 0, 37, 39, 0,  18000, V(128, 0) },   // 18s to peak (→ 0:37:57)
-    { 0, 37, 57, 0,   8000, V(118, 0) },   // 8s shoulder (→ 0:38:05)
-    { 0, 38,  5, 0,  62000, V( 35, 0) },   // 62s ebb — floor rising (→ 0:39:07)
-
-    // Wave 23  (39:07 → trough 40:59)
-    { 0, 39,  7, 0,  26000, V( 68, 0) },   // 26s rise (→ 0:39:33)
-    { 0, 39, 33, 0,  18000, V( 88, 0) },   // 18s to peak (→ 0:39:51)
-    { 0, 39, 51, 0,   8000, V( 80, 0) },   // 8s shoulder (→ 0:39:59)
-    { 0, 39, 59, 0,  60000, V( 40, 0) },   // 60s ebb — floor rising (→ 0:40:59)
-
-    // Wave 24  — last whisper  (40:59 → trough 42:36)
-    { 0, 40, 59, 0,  22000, V( 42, 0) },   // 22s rise (→ 0:41:21)
-    { 0, 41, 21, 0,  15000, V( 60, 0) },   // 15s last peak (→ 0:41:36)
-    { 0, 41, 36, 0,   8000, V( 52, 0) },   // 8s shoulder (→ 0:41:44)
-    { 0, 41, 44, 0,  52000, V( 45, 0) },   // 52s ebb — last warm glow (→ 0:42:36)
-
-    // ── FINAL FADE TO BLACK  (42:36 – 43:21) ────────────────────────────────
-    { 0, 42, 36, 0,  45000, V(  0, 0) },   // 45s fade to black (completes 0:43:21)
+    // ── FINAL FADE TO BLACK  (42:32 – 43:20) ────────────────────────────────
+    { 0, 42, 32, 0,  48000, V(  0, 0) },   // 48s fade to black (completes 0:43:20)
     { 0, 43,  0, 0,      0, V(  0, 0) },   // safety snap at loop end
 
 };  // END CUE_LIST
