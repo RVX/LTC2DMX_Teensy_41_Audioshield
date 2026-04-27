@@ -5,9 +5,9 @@
 // Varytec LED Theater Spot 50 3200K  (2-channel DMX mode)
 // Julian Charrière · CORRER · Venice 2026
 //
-//   Fixture minimum visible threshold: DMX 22  (below = physically dark)
-//   Floor glow = DMX 22.  Hard black = DMX 0.
-//   Lamp apex = DMX 115 at 23:24 (longest true dark valley 21:57–24:33).
+//   Fixture minimum visible threshold: DMX 2   (below = physically dark)
+//   Floor glow = DMX 2.   Hard black = DMX 0.
+//   Lamp apex = DMX 150 at 23:24 (longest true dark valley 21:57–24:33).
 //
 // ── COMPOSITIONAL STRATEGY — FIRE COUNTERPOINT ───────────────────────────────
 //
@@ -67,29 +67,29 @@ static const DMXCue CUE_LIST[] = {
     // =========================================================================
 
     { 0,  0,  0, 0,      0, V(  0, 0) },   // hard black at start
-    { 0,  0,  8, 0,  20000, V( 22, 0) },   // 20s slow ember rise to floor
-    { 0,  0, 28, 0,  18000, V( 33, 0) },   // 18s slow rise
-    { 0,  0, 46, 0,  12000, V( 28, 0) },   // 12s settle
-    { 0,  0, 58, 0,  15000, V( 38, 0) },   // 15s breathe up
-    { 0,  1, 13, 0,  10000, V( 30, 0) },   // 10s breathe down
-    { 0,  1, 23, 0,  20000, V( 45, 0) },   // 20s slow climb
-    { 0,  1, 43, 0,  12000, V( 38, 0) },   // 12s exhale
-    { 0,  1, 55, 0,  17000, V( 52, 0) },   // 17s breathe up
-    { 0,  2, 12, 0,  11000, V( 43, 0) },   // 11s settle
-    { 0,  2, 23, 0,  19000, V( 58, 0) },   // 19s slow climb
-    { 0,  2, 42, 0,  13000, V( 47, 0) },   // 13s exhale
-    { 0,  2, 55, 0,  16000, V( 63, 0) },   // 16s breathe up
-    { 0,  3, 11, 0,  14000, V( 53, 0) },   // 14s exhale
-    { 0,  3, 25, 0,  18000, V( 70, 0) },   // 18s slow rise — tension building
-    { 0,  3, 43, 0,  12000, V( 58, 0) },   // 12s exhale
-    { 0,  3, 55, 0,  15000, V( 75, 0) },   // 15s breathe up
-    { 0,  4, 10, 0,  13000, V( 63, 0) },   // 13s exhale
-    { 0,  4, 23, 0,  15000, V( 78, 0) },   // 15s near-peak of opening
-    { 0,  4, 38, 0,  10000, V( 68, 0) },   // 10s settle
-    { 0,  4, 48, 0,   8000, V( 78, 0) },   // 8s hold
+    { 0,  0,  8, 0,  20000, V(  2, 0) },   // 20s slow ember rise to floor
+    { 0,  0, 28, 0,  18000, V( 20, 0) },   // 18s slow rise
+    { 0,  0, 46, 0,  12000, V( 12, 0) },   // 12s settle
+    { 0,  0, 58, 0,  15000, V( 27, 0) },   // 15s breathe up
+    { 0,  1, 13, 0,  10000, V( 15, 0) },   // 10s breathe down
+    { 0,  1, 23, 0,  20000, V( 39, 0) },   // 20s slow climb
+    { 0,  1, 43, 0,  12000, V( 27, 0) },   // 12s exhale
+    { 0,  1, 55, 0,  17000, V( 50, 0) },   // 17s breathe up
+    { 0,  2, 12, 0,  11000, V( 35, 0) },   // 11s settle
+    { 0,  2, 23, 0,  19000, V( 59, 0) },   // 19s slow climb
+    { 0,  2, 42, 0,  13000, V( 42, 0) },   // 13s exhale
+    { 0,  2, 55, 0,  16000, V( 67, 0) },   // 16s breathe up
+    { 0,  3, 11, 0,  14000, V( 51, 0) },   // 14s exhale
+    { 0,  3, 25, 0,  18000, V( 78, 0) },   // 18s slow rise — tension building
+    { 0,  3, 43, 0,  12000, V( 59, 0) },   // 12s exhale
+    { 0,  3, 55, 0,  15000, V( 86, 0) },   // 15s breathe up
+    { 0,  4, 10, 0,  13000, V( 67, 0) },   // 13s exhale
+    { 0,  4, 23, 0,  15000, V( 91, 0) },   // 15s near-peak of opening
+    { 0,  4, 38, 0,  10000, V( 75, 0) },   // 10s settle
+    { 0,  4, 48, 0,   8000, V( 91, 0) },   // 8s hold
 
     // Pre-empt first fire cluster at 05:13 — dip hard 17s ahead
-    { 0,  4, 56, 0,   7000, V( 40, 0) },   // 7s fast fall
+    { 0,  4, 56, 0,   7000, V( 31, 0) },   // 7s fast fall
     { 0,  5,  3, 0,   5000, V(  0, 0) },   // 5s snap to black before fire
 
     // =========================================================================
@@ -104,13 +104,13 @@ static const DMXCue CUE_LIST[] = {
     // Fire still at 06:16–06:47, 07:01–07:26, 08:45. Recover cautiously.
     // =========================================================================
 
-    { 0,  6, 48, 0,  12000, V( 22, 0) },   // 12s slow rise to floor
+    { 0,  6, 48, 0,  12000, V(  2, 0) },   // 12s slow rise to floor
     { 0,  7,  0, 0,   8000, V(  0, 0) },   // 8s dip for 07:01 fire flash
     { 0,  7,  8, 0,  22000, V(  0, 0) },   // hold dark through 07:10–07:26 sparks
-    { 0,  7, 30, 0,  15000, V( 22, 0) },   // 15s cautious rise to floor
-    { 0,  7, 45, 0,  16000, V( 35, 0) },   // 16s breathe up
-    { 0,  8,  1, 0,  12000, V( 27, 0) },   // 12s exhale
-    { 0,  8, 13, 0,  15000, V( 40, 0) },   // 15s breathe up
+    { 0,  7, 30, 0,  15000, V(  2, 0) },   // 15s cautious rise to floor
+    { 0,  7, 45, 0,  16000, V( 23, 0) },   // 16s breathe up
+    { 0,  8,  1, 0,  12000, V( 10, 0) },   // 12s exhale
+    { 0,  8, 13, 0,  15000, V( 31, 0) },   // 15s breathe up
     { 0,  8, 28, 0,   7000, V(  0, 0) },   // 7s snap dark — pre-empt 08:45 flash
     { 0,  8, 35, 0,  15000, V(  0, 0) },   // hold dark through 08:45–08:46 + 09:08
 
@@ -119,8 +119,8 @@ static const DMXCue CUE_LIST[] = {
     // Small recovery window, then flash at 09:37–09:41.
     // =========================================================================
 
-    { 0,  8, 50, 0,  15000, V( 22, 0) },   // 15s rise to floor
-    { 0,  9,  5, 0,  12000, V( 30, 0) },   // 12s breathe up
+    { 0,  8, 50, 0,  15000, V(  2, 0) },   // 15s rise to floor
+    { 0,  9,  5, 0,  12000, V( 15, 0) },   // 12s breathe up
     { 0,  9, 17, 0,   8000, V(  0, 0) },   // 8s snap dark before 09:37 flash
     { 0,  9, 25, 0,  20000, V(  0, 0) },   // hold dark through 09:37–09:41
 
@@ -129,12 +129,12 @@ static const DMXCue CUE_LIST[] = {
     // Long clear window. Lamp breathes and builds. Black by 11:11.
     // =========================================================================
 
-    { 0,  9, 45, 0,  14000, V( 22, 0) },   // 14s rise to floor
-    { 0,  9, 59, 0,  16000, V( 42, 0) },   // 16s breathe up
-    { 0, 10, 15, 0,  12000, V( 33, 0) },   // 12s exhale
-    { 0, 10, 27, 0,  16000, V( 50, 0) },   // 16s breathe up
-    { 0, 10, 43, 0,  13000, V( 40, 0) },   // 13s exhale
-    { 0, 10, 56, 0,   9000, V( 48, 0) },   // 9s small peak
+    { 0,  9, 45, 0,  14000, V(  2, 0) },   // 14s rise to floor
+    { 0,  9, 59, 0,  16000, V( 34, 0) },   // 16s breathe up
+    { 0, 10, 15, 0,  12000, V( 20, 0) },   // 12s exhale
+    { 0, 10, 27, 0,  16000, V( 47, 0) },   // 16s breathe up
+    { 0, 10, 43, 0,  13000, V( 31, 0) },   // 13s exhale
+    { 0, 10, 56, 0,   9000, V( 43, 0) },   // 9s small peak
     { 0, 11,  5, 0,   8000, V(  0, 0) },   // 8s fast snap to black — Major Burn 1 incoming
 
     // =========================================================================
@@ -149,7 +149,7 @@ static const DMXCue CUE_LIST[] = {
     // Very short gap, Major Burn 2 at 13:23. Show floor only.
     // =========================================================================
 
-    { 0, 13,  3, 0,  10000, V( 22, 0) },   // 10s quick rise to floor only
+    { 0, 13,  3, 0,  10000, V(  2, 0) },   // 10s quick rise to floor only
     { 0, 13, 13, 0,  10000, V(  0, 0) },   // 10s snap to black before Major Burn 2
 
     // =========================================================================
@@ -164,9 +164,9 @@ static const DMXCue CUE_LIST[] = {
     // Short window before fire at 15:40. Quick breathe only.
     // =========================================================================
 
-    { 0, 14, 51, 0,  12000, V( 22, 0) },   // 12s rise to floor
-    { 0, 15,  3, 0,  12000, V( 32, 0) },   // 12s small breath
-    { 0, 15, 15, 0,  10000, V( 22, 0) },   // 10s exhale back
+    { 0, 14, 51, 0,  12000, V(  2, 0) },   // 12s rise to floor
+    { 0, 15,  3, 0,  12000, V( 18, 0) },   // 12s small breath
+    { 0, 15, 15, 0,  10000, V(  2, 0) },   // 10s exhale back
     { 0, 15, 25, 0,   9000, V(  0, 0) },   // 9s snap dark before 15:40 fire
 
     // =========================================================================
@@ -181,8 +181,8 @@ static const DMXCue CUE_LIST[] = {
     // Very short. Pre-empt 17:08 cluster (snap at 17:02).
     // =========================================================================
 
-    { 0, 16, 34, 0,  12000, V( 22, 0) },   // 12s rise to floor
-    { 0, 16, 46, 0,  10000, V( 30, 0) },   // 10s tiny breath
+    { 0, 16, 34, 0,  12000, V(  2, 0) },   // 12s rise to floor
+    { 0, 16, 46, 0,  10000, V( 15, 0) },   // 10s tiny breath
     { 0, 16, 56, 0,   6000, V(  0, 0) },   // 6s snap dark before 17:08 cluster
 
     // =========================================================================
@@ -196,10 +196,10 @@ static const DMXCue CUE_LIST[] = {
     // Longer recovery. Pre-empt 18:47 flash (snap at 18:41).
     // =========================================================================
 
-    { 0, 17, 46, 0,  13000, V( 22, 0) },   // 13s rise to floor
-    { 0, 17, 59, 0,  14000, V( 38, 0) },   // 14s breathe up
-    { 0, 18, 13, 0,  12000, V( 28, 0) },   // 12s exhale
-    { 0, 18, 25, 0,  10000, V( 35, 0) },   // 10s breathe up
+    { 0, 17, 46, 0,  13000, V(  2, 0) },   // 13s rise to floor
+    { 0, 17, 59, 0,  14000, V( 27, 0) },   // 14s breathe up
+    { 0, 18, 13, 0,  12000, V( 12, 0) },   // 12s exhale
+    { 0, 18, 25, 0,  10000, V( 23, 0) },   // 10s breathe up
     { 0, 18, 35, 0,   6000, V(  0, 0) },   // 6s snap dark before 18:47 flash
 
     // =========================================================================
@@ -209,8 +209,8 @@ static const DMXCue CUE_LIST[] = {
     // =========================================================================
 
     { 0, 18, 41, 0,  10000, V(  0, 0) },   // hold dark through 18:47 flash
-    { 0, 18, 51, 0,  14000, V( 22, 0) },   // 14s rise to floor
-    { 0, 19,  5, 0,  11000, V( 30, 0) },   // 11s breath up
+    { 0, 18, 51, 0,  14000, V(  2, 0) },   // 14s rise to floor
+    { 0, 19,  5, 0,  11000, V( 15, 0) },   // 11s breath up
     { 0, 19, 16, 0,   8000, V(  0, 0) },   // 8s snap dark before 19:28 cluster
 
     // =========================================================================
@@ -228,17 +228,17 @@ static const DMXCue CUE_LIST[] = {
     // then yields to the flash that resumes at 24:33.
     // =========================================================================
 
-    { 0, 21, 56, 0,  18000, V( 22, 0) },   // 18s slow ember rise to floor
-    { 0, 22, 14, 0,  20000, V( 45, 0) },   // 20s climb — room breathes again
-    { 0, 22, 34, 0,  16000, V( 65, 0) },   // 16s climb
-    { 0, 22, 50, 0,  14000, V( 85, 0) },   // 14s climb
-    { 0, 23,  4, 0,  12000, V(100, 0) },   // 12s near-peak
-    { 0, 23, 16, 0,   8000, V(115, 0) },   // 8s APEX — DMX 115
-    { 0, 23, 24, 0,  14000, V( 95, 0) },   // 14s hold warm
-    { 0, 23, 38, 0,  12000, V(115, 0) },   // 12s second hold at apex
-    { 0, 23, 50, 0,  10000, V( 85, 0) },   // 10s slow descent
-    { 0, 24,  0, 0,  12000, V( 60, 0) },   // 12s descent — fire returning soon
-    { 0, 24, 12, 0,  11000, V( 35, 0) },   // 11s descent
+    { 0, 21, 56, 0,  18000, V(  2, 0) },   // 18s slow ember rise to floor
+    { 0, 22, 14, 0,  20000, V( 39, 0) },   // 20s climb — room breathes again
+    { 0, 22, 34, 0,  16000, V( 70, 0) },   // 16s climb
+    { 0, 22, 50, 0,  14000, V(102, 0) },   // 14s climb
+    { 0, 23,  4, 0,  12000, V(126, 0) },   // 12s near-peak
+    { 0, 23, 16, 0,   8000, V(150, 0) },   // 8s APEX — DMX 115
+    { 0, 23, 24, 0,  14000, V(118, 0) },   // 14s hold warm
+    { 0, 23, 38, 0,  12000, V(150, 0) },   // 12s second hold at apex
+    { 0, 23, 50, 0,  10000, V(102, 0) },   // 10s slow descent
+    { 0, 24,  0, 0,  12000, V( 62, 0) },   // 12s descent — fire returning soon
+    { 0, 24, 12, 0,  11000, V( 23, 0) },   // 11s descent
     { 0, 24, 23, 0,   8000, V(  0, 0) },   // 8s snap to black before 24:33 flash
 
     // =========================================================================
@@ -249,12 +249,12 @@ static const DMXCue CUE_LIST[] = {
     // =========================================================================
 
     { 0, 24, 31, 0,   9000, V(  0, 0) },   // hold dark through flash
-    { 0, 24, 40, 0,  18000, V( 22, 0) },   // 18s slow rise to floor
-    { 0, 24, 58, 0,  16000, V( 40, 0) },   // 16s breathe up
-    { 0, 25, 14, 0,  14000, V( 30, 0) },   // 14s exhale
-    { 0, 25, 28, 0,  16000, V( 48, 0) },   // 16s breathe up
-    { 0, 25, 44, 0,  13000, V( 35, 0) },   // 13s exhale
-    { 0, 25, 57, 0,  15000, V( 45, 0) },   // 15s breathe up
+    { 0, 24, 40, 0,  18000, V(  2, 0) },   // 18s slow rise to floor
+    { 0, 24, 58, 0,  16000, V( 31, 0) },   // 16s breathe up
+    { 0, 25, 14, 0,  14000, V( 15, 0) },   // 14s exhale
+    { 0, 25, 28, 0,  16000, V( 43, 0) },   // 16s breathe up
+    { 0, 25, 44, 0,  13000, V( 23, 0) },   // 13s exhale
+    { 0, 25, 57, 0,  15000, V( 39, 0) },   // 15s breathe up
     { 0, 26, 12, 0,   8000, V(  0, 0) },   // 8s snap dark before 26:28 fire
 
     // =========================================================================
@@ -265,14 +265,14 @@ static const DMXCue CUE_LIST[] = {
     // =========================================================================
 
     { 0, 26, 20, 0,  35000, V(  0, 0) },   // 35s dark through 26:28–26:55 cluster
-    { 0, 26, 55, 0,  16000, V( 22, 0) },   // 16s slow rise
-    { 0, 27, 11, 0,  15000, V( 35, 0) },   // 15s breathe up
-    { 0, 27, 26, 0,  14000, V( 26, 0) },   // 14s exhale
-    { 0, 27, 40, 0,  16000, V( 42, 0) },   // 16s breathe up
-    { 0, 27, 56, 0,  13000, V( 30, 0) },   // 13s exhale
-    { 0, 28,  9, 0,  14000, V( 38, 0) },   // 14s breathe up
-    { 0, 28, 23, 0,  13000, V( 26, 0) },   // 13s exhale
-    { 0, 28, 36, 0,  11000, V( 33, 0) },   // 11s breathe — tension
+    { 0, 26, 55, 0,  16000, V(  2, 0) },   // 16s slow rise
+    { 0, 27, 11, 0,  15000, V( 23, 0) },   // 15s breathe up
+    { 0, 27, 26, 0,  14000, V(  8, 0) },   // 14s exhale
+    { 0, 27, 40, 0,  16000, V( 34, 0) },   // 16s breathe up
+    { 0, 27, 56, 0,  13000, V( 15, 0) },   // 13s exhale
+    { 0, 28,  9, 0,  14000, V( 27, 0) },   // 14s breathe up
+    { 0, 28, 23, 0,  13000, V(  8, 0) },   // 13s exhale
+    { 0, 28, 36, 0,  11000, V( 20, 0) },   // 11s breathe — tension
     { 0, 28, 47, 0,   7000, V(  0, 0) },   // 7s snap dark before final fire at 29:01
 
     // =========================================================================
@@ -287,10 +287,10 @@ static const DMXCue CUE_LIST[] = {
     // Film cooling down. Lamp rises one last time, then fades to black.
     // =========================================================================
 
-    { 0, 30, 24, 0,  20000, V( 22, 0) },   // 20s slow rise from ash
-    { 0, 30, 44, 0,  18000, V( 33, 0) },   // 18s breathe up
-    { 0, 31,  2, 0,  16000, V( 26, 0) },   // 16s exhale
-    { 0, 31, 18, 0,  20000, V( 35, 0) },   // 20s last warm breath
+    { 0, 30, 24, 0,  20000, V(  2, 0) },   // 20s slow rise from ash
+    { 0, 30, 44, 0,  18000, V( 20, 0) },   // 18s breathe up
+    { 0, 31,  2, 0,  16000, V(  8, 0) },   // 16s exhale
+    { 0, 31, 18, 0,  20000, V( 23, 0) },   // 20s last warm breath
     { 0, 31, 38, 0,  22000, V(  0, 0) },   // 22s final fade to black
 
 };  // END CUE_LIST
