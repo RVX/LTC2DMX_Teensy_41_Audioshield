@@ -72,67 +72,66 @@
 static const DMXCue CUE_LIST[] = {
 
     // =========================================================================
-    // OPENING — 00:00–00:40  SMOOTH LINEAR RISE
+    // OPENING — 00:00–00:40  SMOOTH LINEAR RISE  (capped DMX 30)
     // Pure uninterrupted climb from black. No steps, no oscillation.
     // =========================================================================
 
     { 0,  0,  0, 0,      0, V(  0, 0) },   // hard black at start
-    { 0,  0,  1, 0,  39000, V( 35, 0) },   // 1s dark → 39s smooth linear rise → DMX 35 at 0:40
+    { 0,  0,  1, 0,  29000, V( 12, 0) },   // 1s dark → 29s smooth rise → DMX 12 at 0:30
 
     // =========================================================================
-    // CHAOS — 00:40–04:48  INCREASINGLY ERRATIC
-    // First disruption jolts at 0:40. Irregular oscillations trend upward.
-    // Dips grow sharper/deeper as the fire approaches. Hard stutters from 1:55.
-    // Peaks at DMX 91 from 3:09, then stuttering climax before pre-empt.
+    // CHAOS — 00:40–04:48  INCREASINGLY ERRATIC  (max DMX 30, snappy fades)
+    // All values scaled proportionally from original (was 91 max → 30 max).
+    // Fade times reduced ~25% for more responsive feel.
     // =========================================================================
 
-    { 0,  0, 40, 0,   5000, V( 18, 0) },   // 5s sharp dip — first disruption
-    { 0,  0, 45, 0,   8000, V( 50, 0) },   // 8s jump up
-    { 0,  0, 53, 0,   4000, V( 31, 0) },   // 4s dip
-    { 0,  0, 57, 0,   9000, V( 62, 0) },   // 9s rise
-    { 0,  1,  6, 0,  11000, V( 70, 0) },   // 11s slow build
-    { 0,  1, 17, 0,   3000, V( 23, 0) },   // 3s stutter dip
-    { 0,  1, 20, 0,   7000, V( 65, 0) },   // 7s recovery
-    { 0,  1, 27, 0,   8000, V( 78, 0) },   // 8s build
-    { 0,  1, 35, 0,   4000, V( 47, 0) },   // 4s dip
-    { 0,  1, 39, 0,   6000, V( 70, 0) },   // 6s rise
-    { 0,  1, 45, 0,  10000, V( 82, 0) },   // 10s climb
-    { 0,  1, 55, 0,   2000, V( 12, 0) },   // 2s HARD stutter — darkness bites in
-    { 0,  1, 57, 0,   5000, V( 67, 0) },   // 5s fast recovery
-    { 0,  2,  2, 0,   9000, V( 82, 0) },   // 9s build
-    { 0,  2, 11, 0,   4000, V( 43, 0) },   // 4s dip
-    { 0,  2, 15, 0,   6000, V( 78, 0) },   // 6s rise
-    { 0,  2, 21, 0,   3000, V( 31, 0) },   // 3s sharp dip
-    { 0,  2, 24, 0,   5000, V( 75, 0) },   // 5s recovery
-    { 0,  2, 29, 0,  10000, V( 86, 0) },   // 10s push toward peak
-    { 0,  2, 39, 0,   4000, V( 51, 0) },   // 4s dip
-    { 0,  2, 43, 0,   6000, V( 78, 0) },   // 6s rise
-    { 0,  2, 49, 0,   2000, V( 27, 0) },   // 2s hard stutter
-    { 0,  2, 51, 0,   8000, V( 86, 0) },   // 8s push
-    { 0,  2, 59, 0,  10000, V( 91, 0) },   // 10s → first peak touch at 3:09
-    { 0,  3,  9, 0,   3000, V( 51, 0) },   // 3s sudden fall
-    { 0,  3, 12, 0,   4000, V( 82, 0) },   // 4s recovery
-    { 0,  3, 16, 0,   2000, V( 27, 0) },   // 2s double stutter
-    { 0,  3, 18, 0,   6000, V( 86, 0) },   // 6s rise
-    { 0,  3, 24, 0,   9000, V( 91, 0) },   // 9s at peak → 3:33
-    { 0,  3, 33, 0,   5000, V( 59, 0) },   // 5s fall
-    { 0,  3, 38, 0,   6000, V( 86, 0) },   // 6s recover
-    { 0,  3, 44, 0,   3000, V( 39, 0) },   // 3s dip
-    { 0,  3, 47, 0,   5000, V( 82, 0) },   // 5s recovery
-    { 0,  3, 52, 0,   2000, V( 15, 0) },   // 2s brutal stutter
-    { 0,  3, 54, 0,   4000, V( 78, 0) },   // 4s fast up
-    { 0,  3, 58, 0,   8000, V( 91, 0) },   // 8s at peak → 4:06
-    { 0,  4,  6, 0,   4000, V( 47, 0) },   // 4s drop
-    { 0,  4, 10, 0,   5000, V( 86, 0) },   // 5s recovery
-    { 0,  4, 15, 0,   2000, V( 27, 0) },   // 2s stutter
-    { 0,  4, 17, 0,   3000, V( 78, 0) },   // 3s fast up
-    { 0,  4, 20, 0,   2000, V( 18, 0) },   // 2s brutal stutter — double punch
-    { 0,  4, 22, 0,   4000, V( 86, 0) },   // 4s jump
-    { 0,  4, 26, 0,  12000, V( 91, 0) },   // 12s hold at peak
-    { 0,  4, 38, 0,  10000, V( 91, 0) },   // 10s sustain into pre-empt zone
+    { 0,  0, 40, 0,   4000, V(  6, 0) },   // sharp dip — first disruption
+    { 0,  0, 45, 0,   6000, V( 16, 0) },   // jump up
+    { 0,  0, 53, 0,   3000, V( 10, 0) },   // dip
+    { 0,  0, 57, 0,   7000, V( 20, 0) },   // rise
+    { 0,  1,  6, 0,   8000, V( 23, 0) },   // slow build
+    { 0,  1, 17, 0,   2000, V(  8, 0) },   // stutter dip
+    { 0,  1, 20, 0,   5000, V( 21, 0) },   // recovery
+    { 0,  1, 27, 0,   6000, V( 26, 0) },   // build
+    { 0,  1, 35, 0,   3000, V( 15, 0) },   // dip
+    { 0,  1, 39, 0,   4500, V( 23, 0) },   // rise
+    { 0,  1, 45, 0,   7500, V( 27, 0) },   // climb
+    { 0,  1, 55, 0,   1500, V(  4, 0) },   // HARD stutter — darkness bites in
+    { 0,  1, 57, 0,   4000, V( 22, 0) },   // fast recovery
+    { 0,  2,  2, 0,   7000, V( 27, 0) },   // build
+    { 0,  2, 11, 0,   3000, V( 14, 0) },   // dip
+    { 0,  2, 15, 0,   4500, V( 26, 0) },   // rise
+    { 0,  2, 21, 0,   2000, V( 10, 0) },   // sharp dip
+    { 0,  2, 24, 0,   4000, V( 25, 0) },   // recovery
+    { 0,  2, 29, 0,   7500, V( 28, 0) },   // push toward peak
+    { 0,  2, 39, 0,   3000, V( 17, 0) },   // dip
+    { 0,  2, 43, 0,   4500, V( 26, 0) },   // rise
+    { 0,  2, 49, 0,   1500, V(  9, 0) },   // hard stutter
+    { 0,  2, 51, 0,   6000, V( 28, 0) },   // push
+    { 0,  2, 59, 0,   7500, V( 30, 0) },   // first peak touch at 3:09
+    { 0,  3,  9, 0,   2000, V( 17, 0) },   // sudden fall
+    { 0,  3, 12, 0,   3000, V( 27, 0) },   // recovery
+    { 0,  3, 16, 0,   1500, V(  9, 0) },   // double stutter
+    { 0,  3, 18, 0,   4500, V( 28, 0) },   // rise
+    { 0,  3, 24, 0,   7000, V( 30, 0) },   // at peak → 3:33
+    { 0,  3, 33, 0,   4000, V( 19, 0) },   // fall
+    { 0,  3, 38, 0,   4500, V( 28, 0) },   // recover
+    { 0,  3, 44, 0,   2000, V( 13, 0) },   // dip
+    { 0,  3, 47, 0,   4000, V( 27, 0) },   // recovery
+    { 0,  3, 52, 0,   1500, V(  5, 0) },   // brutal stutter
+    { 0,  3, 54, 0,   3000, V( 26, 0) },   // fast up
+    { 0,  3, 58, 0,   6000, V( 30, 0) },   // at peak → 4:06
+    { 0,  4,  6, 0,   3000, V( 15, 0) },   // drop
+    { 0,  4, 10, 0,   4000, V( 28, 0) },   // recovery
+    { 0,  4, 15, 0,   1500, V(  9, 0) },   // stutter
+    { 0,  4, 17, 0,   2000, V( 26, 0) },   // fast up
+    { 0,  4, 20, 0,   1500, V(  6, 0) },   // brutal stutter — double punch
+    { 0,  4, 22, 0,   3000, V( 28, 0) },   // jump
+    { 0,  4, 26, 0,   9000, V( 30, 0) },   // hold at peak
+    { 0,  4, 38, 0,   7500, V( 30, 0) },   // sustain into pre-empt zone
 
     // Pre-empt first fire cluster at 05:13 — dip hard 17s ahead
-    { 0,  4, 56, 0,   7000, V( 31, 0) },   // 7s fast fall
+    { 0,  4, 56, 0,   5500, V( 10, 0) },   // fast fall
     { 0,  5,  3, 0,   5000, V(  0, 0) },   // 5s snap to black before fire
 
     // =========================================================================
