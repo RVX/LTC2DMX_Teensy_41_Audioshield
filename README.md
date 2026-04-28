@@ -79,6 +79,9 @@ All three follow-the-video channels are auto-generated. Edit the constants at th
 | `BREATH_PERIOD_SEC` | 11.0 | slow, longer than ch2 → decoupled feel |
 | `WOBBLE_AMP_MAX / MIN` | 12 / 3 | jitter |
 | `CHAOS_AMP_MAX / MIN` | 18 / 3 | erratic layer |
+| `SAFETY_DMX` | **30** | hold value during safety zones (room never pitch-black on ch5) |
+| `SAFETY_OSC_AMP / PERIOD` | ±4 / 7 s | tiny oscillation during safety zones |
+| Safety zones | **0:00 → 0:29 and 30:00 → 31:38** | safety hold active outside body |
 
 ### `gen_saber_cues.py` — ch7 envelope follower + strobe zones
 | Constant | Current | Effect |

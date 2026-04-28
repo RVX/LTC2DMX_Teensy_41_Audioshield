@@ -64,10 +64,20 @@ DELTA_SKIP        = 2
 INTRO_FADE_MS     = 29000
 OUTRO_FADE_MS     = 8000
 
-START_RISE_TIME   = (0, 0,  1)
-START_RISE_TARGET = 6
-END_FADE_TIME     = (0, 30, 24)
-END_BLACK_TIME    = (0, 31, 38)
+START_RISE_TIME   = (0, 0, 29)   # start of body — leaves the 0-29s hold zone
+START_RISE_TARGET = 6            # gentle rise into a low corridor wash
+END_FADE_TIME     = (0, 30,  0)  # body ends at 30:00, then safety-light hold begins
+END_BLACK_TIME    = (0, 31, 38)  # (legacy bookend — no longer used; light stays at SAFETY_DMX)
+
+# ── SAFETY-LIGHT HOLD ZONES ──
+# The room must never be pitch-black on ch5. From 0:00 → START_RISE_TIME and
+# from END_FADE_TIME onwards, hold at SAFETY_DMX with a tiny oscillation.
+SAFETY_DMX             = 30      # baseline value during hold zones
+SAFETY_OSC_AMP         = 4       # ±4 DMX tiny breath during hold zones
+SAFETY_OSC_PERIOD_SEC  = 7.0     # slow gentle pulse
+SAFETY_EMIT_EVERY_SEC  = 3       # cue every 3s (small motion, save RAM)
+SAFETY_FADE_MS         = 2500    # smooth interpolation between samples
+SAFETY_TAIL_END_SEC    = 31 * 60 + 38   # write hold cues out to 31:38
 
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -137,12 +147,24 @@ def generate_cues(data):
     yavg_s = smooth(yavgs, SMOOTH_WINDOW_SEC)
 
     cues = []
-    cues.append((0, 0, 0, 0, 0, "hard black at start"))
-    rh, rm, rs = START_RISE_TIME
-    cues.append((rh, rm, rs, START_RISE_TARGET, INTRO_FADE_MS,
-                 f"smooth rise -> DMX {START_RISE_TARGET} over {INTRO_FADE_MS//1000}s"))
 
-    rise_end_sec = rh * 3600 + rm * 60 + rs + INTRO_FADE_MS // 1000
+    # ── OPENING SAFETY-LIGHT HOLD: 0:00 → START_RISE_TIME at SAFETY_DMX ± osc ──
+    rh, rm, rs = START_RISE_TIME
+    rise_start_sec = rh * 3600 + rm * 60 + rs
+    cues.append((0, 0, 0, SAFETY_DMX, 0,
+                 f"opening safety hold -> DMX {SAFETY_DMX}"))
+    for sec in range(SAFETY_EMIT_EVERY_SEC, rise_start_sec, SAFETY_EMIT_EVERY_SEC):
+        osc = SAFETY_OSC_AMP * math.sin(2 * math.pi * sec / SAFETY_OSC_PERIOD_SEC)
+        v   = int(round(SAFETY_DMX + osc))
+        h, m, s = sec_to_hms(sec)
+        cues.append((h, m, s, v, SAFETY_FADE_MS,
+                     f"safety hold osc -> DMX {v}"))
+
+    # ── BRIDGE: smooth fade from SAFETY_DMX down to body start value ──
+    cues.append((rh, rm, rs, START_RISE_TARGET, 4000,
+                 f"bridge -> DMX {START_RISE_TARGET} (body start)"))
+
+    rise_end_sec = rise_start_sec + 4   # 4s bridge, then body emits begin
     end_sec      = END_FADE_TIME[0] * 3600 + END_FADE_TIME[1] * 60 + END_FADE_TIME[2]
 
     last_emit = START_RISE_TARGET
@@ -159,10 +181,20 @@ def generate_cues(data):
                      f"yavg={yavg:5.1f} sm={yavg_sm:5.1f} -> DMX {dmx}"))
         last_emit = dmx
 
+    # ── CLOSING SAFETY-LIGHT HOLD: from END_FADE_TIME onwards at SAFETY_DMX ± osc ──
     eh, em, es = END_FADE_TIME
-    cues.append((eh, em, es, 0, OUTRO_FADE_MS, f"outro fade -> 0 over {OUTRO_FADE_MS//1000}s"))
-    bh, bm, bs = END_BLACK_TIME
-    cues.append((bh, bm, bs, 0, 0, "hard black"))
+    end_start_sec = eh * 3600 + em * 60 + es
+    # Bridge back up to safety value over 4s
+    cues.append((eh, em, es, SAFETY_DMX, 4000,
+                 f"closing safety hold -> DMX {SAFETY_DMX}"))
+    for sec in range(end_start_sec + SAFETY_EMIT_EVERY_SEC,
+                     SAFETY_TAIL_END_SEC + 1,
+                     SAFETY_EMIT_EVERY_SEC):
+        osc = SAFETY_OSC_AMP * math.sin(2 * math.pi * sec / SAFETY_OSC_PERIOD_SEC)
+        v   = int(round(SAFETY_DMX + osc))
+        h, m, s = sec_to_hms(sec)
+        cues.append((h, m, s, v, SAFETY_FADE_MS,
+                     f"safety hold osc -> DMX {v}"))
 
     cues.sort(key=lambda c: c[0]*3600 + c[1]*60 + c[2])
     return cues
