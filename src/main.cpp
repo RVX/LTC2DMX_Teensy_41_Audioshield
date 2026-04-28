@@ -15,6 +15,7 @@
 #  include "cues_albedo.h"
 #elif LTC_FRAMERATE == 30
 #  include "cues_control_burn.h"
+#  include "cues_saber_ww.h"   // ADJ Saber Spot WW — ch7, follows p99
 #else
 #  error "Unknown LTC_FRAMERATE — must be 25 (albedo) or 30 (controlled_burn) in platformio.ini"
 #endif
@@ -53,6 +54,9 @@ AudioConnection patchMx_R(mixerR,   0, audioOut,    1);
 teensydmx::Sender dmxSender{DMX_SERIAL_PORT};
 LTCDecoder        ltcDecoder;
 DMXController     dmxCtrl{dmxSender, CUE_LIST, CUE_COUNT, LTC_FRAMERATE};
+#if LTC_FRAMERATE == 30
+DMXController     saberCtrl{dmxSender, SABER_CUE_LIST, SABER_CUE_COUNT, LTC_FRAMERATE};
+#endif
 static bool       s_codecFailed = false;
 #ifdef ENABLE_DISPLAY
 LTCDisplay        ltcDisplay;
@@ -330,6 +334,9 @@ void setup()
 
     // -- DMX sender ------------------------------------------------------------
     dmxCtrl.begin();
+#if LTC_FRAMERATE == 30
+    saberCtrl.blackout();   // initialise ch7 state (sender already started above)
+#endif
 
 #ifdef ENABLE_DISPLAY
     // -- DMX cue display callback ---------------------------------------------
@@ -615,8 +622,12 @@ void loop()
             lastFrameMs = now;
 
             // ── Drive cue engine in PLAY mode ────────────────────────────────
-            if (!liveMode)
+            if (!liveMode) {
                 dmxCtrl.update(tc.hours, tc.minutes, tc.seconds, tc.frames);
+#if LTC_FRAMERATE == 30
+                saberCtrl.update(tc.hours, tc.minutes, tc.seconds, tc.frames);
+#endif
+            }
 
             // ── Normal timecode print ────────────────────────────────────────
             if (!tcMute) {
@@ -646,7 +657,12 @@ void loop()
     }
 
     // -- Fade tick (PLAY mode only) --------------------------------------------
-    if (!liveMode) dmxCtrl.tick();
+    if (!liveMode) {
+        dmxCtrl.tick();
+#if LTC_FRAMERATE == 30
+        saberCtrl.tick();
+#endif
+    }
 
     // -- Audio level (read once; shared between heartbeat and display) ---------
     static float s_audioLevel = 0.0f;
