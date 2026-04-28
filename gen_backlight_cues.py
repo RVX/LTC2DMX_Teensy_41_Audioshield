@@ -38,25 +38,40 @@ CSV_PATH     = os.path.join(PROJECT_ROOT, "controlled_burn_luma.csv")
 OUTPUT_PATH  = os.path.join(PROJECT_ROOT, "src", "cues_control_burn.h")
 
 # ── Mapping parameters ───────────────────────────────────────────────────────
+# 30% LESS DARK in body: BASE_CAP lifted 100 → 130 so the average sits brighter.
+# Floor stays at 1 so erratic breath can still dip way down momentarily.
 BACKLIGHT_FLOOR    = 1       # absolute minimum during composition body
-BACKLIGHT_BASE_CAP = 100     # ceiling of the inverse base before breath/wobble
-BACKLIGHT_HARD_CAP = 180     # total ceiling — allows micro-peaks above 100 in pitch-dark video
+BACKLIGHT_BASE_CAP = 130     # ceiling of the inverse base before breath/wobble (was 100, +30%)
+BACKLIGHT_HARD_CAP = 200     # total ceiling — allows micro-peaks above base in pitch-dark video
 YAVG_BRIGHT_REF    = 110.0   # video luma above this → backlight at floor
 SMOOTH_WINDOW_SEC  = 5       # rolling mean window on yavg
 
 # ── Oscillation layers (amplitudes scale with darkness — reactive breathing) ──
-BREATH_PERIOD_DARK_SEC   = 16.0   # slow deep breath when video is pitch-dark
-BREATH_PERIOD_BRIGHT_SEC = 6.0    # quicker, shallower breath when video is bright
-BREATH_AMP_MAX           = 50     # ±50 DMX in pitch-dark video
-BREATH_AMP_MIN           = 6      # ±6 DMX when video is bright
-WOBBLE_PERIOD_SEC        = 4.7
-WOBBLE_AMP_MAX           = 18     # narrative micro-jitter, scales with darkness
-WOBBLE_AMP_MIN           = 3
+# Periods shortened so the wave no longer feels ~40 s long; chaos layer added
+# below to break the obvious sine pattern and make breathing feel erratic.
+BREATH_PERIOD_DARK_SEC   = 9.0    # was 16 — quicker breath when video is pitch-dark
+BREATH_PERIOD_BRIGHT_SEC = 3.5    # was 6  — quicker, shallower breath when video is bright
+BREATH_AMP_MAX           = 70     # was 50 — wider swing → reaches lower values too
+BREATH_AMP_MIN           = 8      # was 6
+WOBBLE_PERIOD_SEC        = 2.9    # was 4.7 — faster narrative jitter
+WOBBLE_AMP_MAX           = 22     # was 18
+WOBBLE_AMP_MIN           = 4      # was 3
+
+# ── Erratic chaos layer (multi-sine + per-second jitter) ──
+# Sum of 3 incommensurate sines + small per-second deterministic noise so the
+# breathing never repeats with a clean period. Amplitude scales with darkness.
+CHAOS_AMP_MAX            = 30     # ±30 DMX in pitch-dark, scales down with brightness
+CHAOS_AMP_MIN            = 4
+CHAOS_PERIODS_SEC        = (3.1, 7.3, 11.7)   # incommensurate → no repeat
+CHAOS_PHASES             = (0.7, 2.4, 4.1)
+CHAOS_NOISE_SEED         = 1337
 
 # ── Cue emission cadence ─────────────────────────────────────────────────────
-EMIT_EVERY_SEC     = 2       # one cue every 2 s — keep memory in check
-FADE_MS            = 2000    # fade between cues = 2 s → seamless interpolation
-DELTA_SKIP         = 3       # skip if change vs previous emitted cue is small
+# Tightened from 2s/2000ms to 1s/900ms so the new chaos+shorter-breath layers
+# are actually visible — slow fades would smear the erratic motion.
+EMIT_EVERY_SEC     = 2       # one cue every 2 s — keeps RAM under Teensy cap
+FADE_MS            = 1000    # half-emit fade so chaos+breath motion stays crisp (was 2000)
+DELTA_SKIP         = 5       # skip if change vs previous emitted cue is small
 INTRO_FADE_MS      = 29000   # smoother rise from black at start
 OUTRO_FADE_MS      = 8000    # smooth fade-to-black at end
 
@@ -182,16 +197,41 @@ def normalise(h, m, s, f):
     return h, m, s, f
 
 
+# Pre-built per-second deterministic noise table for the chaos layer.
+_CHAOS_NOISE = None
+def _chaos_noise(sec):
+    global _CHAOS_NOISE
+    if _CHAOS_NOISE is None:
+        rng = random.Random(CHAOS_NOISE_SEED)
+        _CHAOS_NOISE = [rng.uniform(-1.0, 1.0) for _ in range(4000)]
+    if sec < 0 or sec >= len(_CHAOS_NOISE):
+        return 0.0
+    # Interpolate between integer-second samples for smoothness
+    i = int(sec)
+    frac = sec - i
+    a = _CHAOS_NOISE[i]
+    b = _CHAOS_NOISE[min(i + 1, len(_CHAOS_NOISE) - 1)]
+    return a + (b - a) * frac
+
+
 def compute_oscillating_dmx(sec, yavg_sm):
     """Replicate the regular oscillation formula for any second."""
     base, darkness = yavg_to_inverted_dmx(yavg_sm)
     breath_amp    = BREATH_AMP_MIN + darkness * (BREATH_AMP_MAX - BREATH_AMP_MIN)
     breath_period = BREATH_PERIOD_BRIGHT_SEC + darkness * (BREATH_PERIOD_DARK_SEC - BREATH_PERIOD_BRIGHT_SEC)
     wobble_amp    = WOBBLE_AMP_MIN + darkness * (WOBBLE_AMP_MAX - WOBBLE_AMP_MIN)
+    chaos_amp     = CHAOS_AMP_MIN  + darkness * (CHAOS_AMP_MAX  - CHAOS_AMP_MIN)
     breath = breath_amp * math.sin(2 * math.pi * sec / breath_period)
     wobble = wobble_amp * math.sin(2 * math.pi * sec / WOBBLE_PERIOD_SEC + 1.3)
+    # Erratic multi-sine chaos — three incommensurate periods sum to a non-repeating wave
+    chaos_sum = 0.0
+    for p, ph in zip(CHAOS_PERIODS_SEC, CHAOS_PHASES):
+        chaos_sum += math.sin(2 * math.pi * sec / p + ph)
+    chaos_sum /= len(CHAOS_PERIODS_SEC)            # normalise to ~[-1,1]
+    chaos_sum  = 0.6 * chaos_sum + 0.4 * _chaos_noise(sec)   # blend in per-sec noise
+    chaos = chaos_amp * chaos_sum
     return int(round(max(BACKLIGHT_FLOOR,
-                         min(BACKLIGHT_HARD_CAP, base + breath + wobble))))
+                         min(BACKLIGHT_HARD_CAP, base + breath + wobble + chaos))))
 
 
 def generate_cues(data):
