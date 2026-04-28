@@ -235,7 +235,7 @@ def write_header(cues, output_path: str):
             last_zone = zone
 
         lines.append(
-            f"    {{ 0, {h:2d}, {m:2d}, {s:2d},  {fade:6d}, W({dmx:3d}) }},   // {comment}"
+            f"    {{ {h:2d}, {m:2d}, {s:2d},  0,  {fade:6d}, W({dmx:3d}) }},   // {comment}"
         )
 
     lines.append("")
