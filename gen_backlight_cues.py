@@ -181,6 +181,7 @@ THUNDER_MIN_GAP_F    = 6      # min frames between consecutive thunder dips (ski
 # recovery at end.
 BLACKOUT_RANGES = [
     (10, 0, 10, 13),    # 10:00 – 10:13  pitch black
+    (10,25, 11, 0),     # 10:25 – 11:00  pitch black
     (14, 2, 14, 18),    # 14:02 – 14:18  pitch black
 ]
 BLACKOUT_DOWN_MS    = 250     # snap-to-black at window start

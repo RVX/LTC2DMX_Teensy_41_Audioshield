@@ -71,7 +71,7 @@ All three follow-the-video channels are auto-generated. Edit the constants at th
 | `BACKLIGHT_BASE_CAP` | **15** | ceiling of inverse-luma base before breath/wobble |
 | `BACKLIGHT_HARD_CAP` | **100** | absolute ceiling — peaks with chaos can reach this |
 | `BACKLIGHT_BIAS` | **8** | constant uplift → sets body mean (currently ≈ 25) |
-| `BLACKOUT_RANGES` | `(10:00–10:13)`, `(14:02–14:18)` | hard pitch-black windows (suppresses oscillation + all events) |
+| `BLACKOUT_RANGES` | `(10:00–10:13)`, `(10:25–11:00)`, `(14:02–14:18)` | hard pitch-black windows (suppresses oscillation + all events) |
 | `BLACKOUT_DOWN_MS / RECOVER_MS` | 250 / 800 | snap to 0 at start, smooth recovery at end |
 | `BACK_THUNDER_MOMENTS_MMSS` | `12:50, 15:37, 16:40` | independent ch2 lightning bursts (4–7 inverse-strobes/burst) |
 | `BACK_THUNDER_HOLD/DOWN/RECOVER` | 2 f / 25 ms / 120 ms | shape of each strobe inside a back-thunder burst |
