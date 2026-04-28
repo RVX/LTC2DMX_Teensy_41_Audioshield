@@ -5,6 +5,19 @@ Built for **Julian Charrière — Museo Correr, Venice 2026** by Victor Mazon Ga
 
 ---
 
+## 🟢 Known-good state
+
+**Tag:** `good-state-2026-04-28` · commit `6a56486`  
+Roll back any time with: `git checkout good-state-2026-04-28`
+
+| Channel | Range | Mean | Notes |
+|---|---|---|---|
+| ch2 backlight | 11–100 | 60.5 | soft 6 s fade-out at 31:50 |
+| ch5 corridor  | 40–149 | 61.7 | `SABER2_BIAS=44` |
+| ch7 saber WW  | — | — | unchanged |
+
+---
+
 ## Compositions
 
 | Composition | Duration | FPS | PlatformIO env | Main cue file |
