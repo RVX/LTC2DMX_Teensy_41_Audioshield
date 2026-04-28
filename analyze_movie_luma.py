@@ -247,7 +247,7 @@ def main():
     COL_LUMA = "#f0d080"   # warm gold  — video luma
     COL_DMX  = "#4fc3f7"   # cool blue  — DMX arc
 
-    fig, ax = plt.subplots(figsize=(42, 9))
+    fig, ax = plt.subplots(figsize=(42, 11))
     fig.patch.set_facecolor(BG)
     ax.set_facecolor(AX)
 
@@ -288,22 +288,22 @@ def main():
         h, r2 = divmod(film_peak_sec, 3600); mn, s = divmod(r2, 60)
         ax.axvline(x=film_peak_sec, color=COL_P95, linewidth=0.8, linestyle=":", alpha=0.7)
         ax.text(film_peak_sec + 6, 248, f"Film peak (p95)  {h:02d}:{mn:02d}:{s:02d}",
-                color=COL_P95, fontsize=8, alpha=0.9)
+                color=COL_P95, fontsize=11, alpha=0.9)
 
     # DMX apex marker
     if APEX_SEC is not None:
         ax.axvline(x=APEX_SEC, color="#ff6e6e", linewidth=0.8, linestyle="--", alpha=0.6)
         h, r2 = divmod(APEX_SEC, 3600); mn, s = divmod(r2, 60)
         ax.text(APEX_SEC + 6, 232, f"DMX apex  {h:02d}:{mn:02d}:{s:02d}",
-                color="#ff6e6e", fontsize=8, alpha=0.8)
+                color="#ff6e6e", fontsize=11, alpha=0.8)
 
     ax.set_xlim(0, TOTAL_SEC)
     ax.set_ylim(0, 270)
-    ax.set_xlabel("Time  (MM:SS)", color="#aaaaaa", fontsize=11)
-    ax.set_ylabel("Value  (0 – 255)", color="#aaaaaa", fontsize=11)
+    ax.set_xlabel("Time  (MM:SS)", color="#aaaaaa", fontsize=14)
+    ax.set_ylabel("Value  (0 – 255)", color="#aaaaaa", fontsize=14)
     ax.set_title(
         f"{LABEL}  —  Video Luminance  vs.  DMX Cue Arc\n{MOVIE.name}",
-        color="#ffffff", fontsize=13, pad=14
+        color="#ffffff", fontsize=16, pad=16
     )
     ax.tick_params(colors="#666666")
     for spine in ax.spines.values():
@@ -322,13 +322,13 @@ def main():
     ax.grid(True, which="major", color="#2d2d2d", linewidth=0.6, zorder=0)
     # minor grid — very faint
     ax.grid(True, which="minor", color="#1f1f1f", linewidth=0.25, zorder=0)
-    ax.tick_params(axis="x", which="major", labelsize=6.5, rotation=60)
-    ax.tick_params(axis="x", which="minor", length=3,   labelsize=0)
-    ax.tick_params(axis="y", which="major", labelsize=7.5)
-    ax.tick_params(axis="y", which="minor", length=3,   labelsize=0)
+    ax.tick_params(axis="x", which="major", labelsize=9, rotation=60)
+    ax.tick_params(axis="x", which="minor", length=3,  labelsize=0)
+    ax.tick_params(axis="y", which="major", labelsize=10)
+    ax.tick_params(axis="y", which="minor", length=3,  labelsize=0)
 
     ax.legend(facecolor="#222222", edgecolor="#444444",
-              labelcolor="#cccccc", fontsize=10, loc="upper left")
+              labelcolor="#cccccc", fontsize=12, loc="upper left")
 
     plt.tight_layout()
     plt.savefig(str(OUT_PNG), dpi=150, facecolor=fig.get_facecolor())
