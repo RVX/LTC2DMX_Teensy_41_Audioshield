@@ -44,7 +44,7 @@ OUTPUT_PATH  = os.path.join(PROJECT_ROOT, "src", "cues_control_burn.h")
 BACKLIGHT_FLOOR    = 1       # absolute minimum during composition body
 BACKLIGHT_BASE_CAP = 15      # ceiling of the inverse base before breath/wobble
 BACKLIGHT_HARD_CAP = 100     # total ceiling — lamp never exceeds this
-BACKLIGHT_BIAS     = 17      # constant uplift — halved (was 47) so body mean ≈ 30 (half of 60)
+BACKLIGHT_BIAS     = 8       # constant uplift — tuned to hit body mean ≈ 25
 YAVG_BRIGHT_REF    = 110.0   # video luma above this → backlight at floor
 SMOOTH_WINDOW_SEC  = 5       # rolling mean window on yavg
 
@@ -174,6 +174,37 @@ THUNDER_HOLD_FRAMES  = 3      # ~100 ms of darkness
 THUNDER_RECOVER_MS   = 180    # quick recover to base value
 THUNDER_MIN_GAP_F    = 6      # min frames between consecutive thunder dips (skip dense bursts)
 
+# ── PITCH-BLACK RANGES (ch2 forced to 0 across a window) ───────────────────
+# (start_mm, start_ss, end_mm, end_ss). Inside these windows the oscillation
+# generator and ALL injected events (dips, flickers, thunder, back-thunder) are
+# suppressed; ch2 is hard-clamped to 0 with a snap-down at start and a smooth
+# recovery at end.
+BLACKOUT_RANGES = [
+    (10, 0, 10, 13),    # 10:00 – 10:13  pitch black
+    (14, 2, 14, 18),    # 14:02 – 14:18  pitch black
+]
+BLACKOUT_DOWN_MS    = 250     # snap-to-black at window start
+BLACKOUT_RECOVER_MS = 800     # smooth lift back to base at window end
+
+def in_blackout(sec):
+    return any(a*60+b <= sec <= c*60+d for a, b, c, d in BLACKOUT_RANGES)
+
+# ── BACK-THUNDER BURSTS (manual ch2 inverse-strobe lightning bursts) ─────────
+# Each entry triggers a cluster of fast inverse strobes on ch2 (snap-to-0,
+# brief hold, recover) — a thunderclap on the backlight independent of ch7.
+# (mm, ss) — burst centred at this timestamp.
+BACK_THUNDER_MOMENTS_MMSS = [
+    (12, 50),
+    (15, 37),
+    (16, 40),
+]
+BACK_THUNDER_COUNT       = (4, 7)    # min,max strobes per burst
+BACK_THUNDER_GAP_FRAMES  = (4, 10)   # 130–330 ms between strobes inside a burst
+BACK_THUNDER_HOLD_FRAMES = 2         # ~67 ms of darkness per strobe
+BACK_THUNDER_DOWN_MS     = 25        # ultra-fast snap to 0
+BACK_THUNDER_RECOVER_MS  = 120       # quick recover between strobes
+BACK_THUNDER_SEED        = 911
+
 # ─────────────────────────────────────────────────────────────────────────────
 
 def load_yavg(csv_path):
@@ -284,6 +315,8 @@ def generate_cues(data):
             continue
         if (sec - rise_end_sec) % EMIT_EVERY_SEC != 0:
             continue
+        if in_blackout(sec):
+            continue   # blackout window — oscillation suppressed, see explicit cues below
 
         dmx = compute_oscillating_dmx(sec, yavg_sm)
 
@@ -304,6 +337,8 @@ def generate_cues(data):
             ff = 0
         ev_sec = mm * 60 + ss
         if ev_sec not in yavg_sm_map:
+            continue
+        if in_blackout(ev_sec):
             continue
         base_dmx = compute_oscillating_dmx(ev_sec, yavg_sm_map[ev_sec])
         h0, m0, s0 = sec_to_hms(ev_sec)
@@ -334,6 +369,8 @@ def generate_cues(data):
             _last_total_f = _total_f
             _ev_sec = _s["sec"]
             if _ev_sec not in yavg_sm_map:
+                continue
+            if in_blackout(_ev_sec):
                 continue
             _base = compute_oscillating_dmx(_ev_sec, yavg_sm_map[_ev_sec])
             _h0, _m0, _s0 = sec_to_hms(_ev_sec)
@@ -403,6 +440,43 @@ def generate_cues(data):
             eh, em, es = sec_to_hms(end_sec_)
             cues.append((eh, em, es, 0, base_end, 400,
                          f"{end_mm}:{end_ss:02d} FLICK_RNG recover → {base_end}"))
+
+    # ── PITCH-BLACK RANGES (hard 0 across a window) ──────────────────────────
+    for a_mm, a_ss, b_mm, b_ss in BLACKOUT_RANGES:
+        s_sec = a_mm * 60 + a_ss
+        e_sec = b_mm * 60 + b_ss
+        h0, m0, s0 = sec_to_hms(s_sec)
+        cues.append((h0, m0, s0, 0, 0, BLACKOUT_DOWN_MS,
+                     f"{a_mm}:{a_ss:02d} BLACKOUT ↓ 0 ({BLACKOUT_DOWN_MS}ms)"))
+        # Recover at end_sec to whatever the oscillation would have been
+        if e_sec in yavg_sm_map:
+            base_end = compute_oscillating_dmx(e_sec, yavg_sm_map[e_sec])
+        else:
+            base_end = BACKLIGHT_BIAS
+        h1, m1, s1 = sec_to_hms(e_sec)
+        cues.append((h1, m1, s1, 0, base_end, BLACKOUT_RECOVER_MS,
+                     f"{b_mm}:{b_ss:02d} BLACKOUT ↑ recover → {base_end} ({BLACKOUT_RECOVER_MS}ms)"))
+
+    # ── BACK-THUNDER BURSTS (manual ch2 inverse-strobe lightning bursts) ─────
+    bt_rng = random.Random(BACK_THUNDER_SEED)
+    for mm, ss in BACK_THUNDER_MOMENTS_MMSS:
+        ev_sec = mm * 60 + ss
+        if in_blackout(ev_sec):
+            continue
+        if ev_sec not in yavg_sm_map:
+            continue
+        base_dmx = compute_oscillating_dmx(ev_sec, yavg_sm_map[ev_sec])
+        h0, m0, s0 = sec_to_hms(ev_sec)
+        n_strobes = bt_rng.randint(BACK_THUNDER_COUNT[0], BACK_THUNDER_COUNT[1])
+        cur_f = bt_rng.randint(0, 3)
+        for i in range(n_strobes):
+            ah, am, as_, af = normalise(h0, m0, s0, cur_f)
+            cues.append((ah, am, as_, af, 0, BACK_THUNDER_DOWN_MS,
+                         f"{mm}:{ss:02d}+{cur_f}f BACK_THUNDER#{i+1} ↓ 0 ({BACK_THUNDER_DOWN_MS}ms)"))
+            rh2, rm2, rs2, rf2 = normalise(h0, m0, s0, cur_f + BACK_THUNDER_HOLD_FRAMES)
+            cues.append((rh2, rm2, rs2, rf2, base_dmx, BACK_THUNDER_RECOVER_MS,
+                         f"{mm}:{ss:02d}+{cur_f+BACK_THUNDER_HOLD_FRAMES}f BACK_THUNDER#{i+1} ↑ {base_dmx} ({BACK_THUNDER_RECOVER_MS}ms)"))
+            cur_f += BACK_THUNDER_HOLD_FRAMES + bt_rng.randint(BACK_THUNDER_GAP_FRAMES[0], BACK_THUNDER_GAP_FRAMES[1])
 
     # Outro: bridge to SAFETY_DMX, then hold with tiny oscillation, then black
     eh, em, es = END_FADE_TIME

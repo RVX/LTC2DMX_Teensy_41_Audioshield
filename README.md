@@ -12,7 +12,7 @@ Roll back any time with: `git checkout good-state-2026-04-28`
 
 | Channel | Range | Mean | Notes |
 |---|---|---|---|
-| ch2 backlight | 1–81 | 31.8 | halved bias + thunderstorm dips synced to ch7 |
+| ch2 backlight | 1–72 | 25.2 | bias 8 + blackouts (10:00–10:13, 14:02–14:18) + back-thunder (12:50, 15:37, 16:40) + ch7 sync |
 | ch5 corridor  | 40–149 | 61.7 | `SABER2_BIAS=44` |
 | ch7 saber WW  | 2–255 | 102.7 | exports `ch7_strobe_times.json` |
 
@@ -70,7 +70,11 @@ All three follow-the-video channels are auto-generated. Edit the constants at th
 | `BACKLIGHT_FLOOR` | 1 | absolute minimum during body (DIPs go to 0) |
 | `BACKLIGHT_BASE_CAP` | **15** | ceiling of inverse-luma base before breath/wobble |
 | `BACKLIGHT_HARD_CAP` | **100** | absolute ceiling — peaks with chaos can reach this |
-| `BACKLIGHT_BIAS` | **17** | constant uplift → sets body mean (currently ≈ 32) |
+| `BACKLIGHT_BIAS` | **8** | constant uplift → sets body mean (currently ≈ 25) |
+| `BLACKOUT_RANGES` | `(10:00–10:13)`, `(14:02–14:18)` | hard pitch-black windows (suppresses oscillation + all events) |
+| `BLACKOUT_DOWN_MS / RECOVER_MS` | 250 / 800 | snap to 0 at start, smooth recovery at end |
+| `BACK_THUNDER_MOMENTS_MMSS` | `12:50, 15:37, 16:40` | independent ch2 lightning bursts (4–7 inverse-strobes/burst) |
+| `BACK_THUNDER_HOLD/DOWN/RECOVER` | 2 f / 25 ms / 120 ms | shape of each strobe inside a back-thunder burst |
 | `THUNDER_ENABLE` | True | mirror every ch7 strobe with an inverse dip on ch2 |
 | `THUNDER_MIN_DMX` | 80 | only mirror saber flashes brighter than this |
 | `THUNDER_DOWN/HOLD/RECOVER` | 30 ms / 3 f / 180 ms | shape of the lightning-shadow dip |
