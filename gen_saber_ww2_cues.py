@@ -38,7 +38,7 @@ SABER2_CH         = 5
 SABER2_FLOOR      = 12       # minimum during body — light never fully off
 SABER2_BASE_CAP   = 90       # ceiling of the brightness-following base
 SABER2_HARD_CAP   = 220      # absolute max with chaos/breath added
-SABER2_BIAS       = 24       # constant uplift — adds body brightness
+SABER2_BIAS       = 44       # constant uplift — adds body brightness
 YAVG_BRIGHT_REF   = 110.0    # video luma above this → at BASE_CAP
 
 # Subtle oscillation so the corridor isn't a flat dimmer.

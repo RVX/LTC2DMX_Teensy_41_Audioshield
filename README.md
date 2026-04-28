@@ -77,7 +77,7 @@ All three follow-the-video channels are auto-generated. Edit the constants at th
 | `SABER2_FLOOR` | 12 | minimum — corridor never fully off |
 | `SABER2_BASE_CAP` | **90** | ceiling of brightness-following base |
 | `SABER2_HARD_CAP` | **220** | absolute peak with breath/chaos |
-| `SABER2_BIAS` | **24** | constant uplift — adds body brightness without raising caps |
+| `SABER2_BIAS` | **44** | constant uplift — adds body brightness without raising caps |
 | `BREATH_AMP_MAX / MIN` | 48 / 6 | breath swing |
 | `BREATH_PERIOD_SEC` | 11.0 | slow, longer than ch2 → decoupled feel |
 | `WOBBLE_AMP_MAX / MIN` | 24 / 6 | jitter |
