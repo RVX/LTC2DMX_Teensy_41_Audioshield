@@ -27,7 +27,7 @@ OUTPUT_PATH  = os.path.join(PROJECT_ROOT, "src", "cues_saber_ww.h")
 
 # ── ADJ Saber Spot WW ─────────────────────────────────────────────────────────
 SABER_CH   = 7    # DMX channel 7 = dimmer (address 7, 1-ch mode)
-SABER_APEX = 255  # 0–255 full range
+SABER_APEX = 160  # cap at 160 — keeps peaks varied and avoids sustained saturation
 SABER_FLOOR = 2   # minimum visible
 
 # ── p99 → DMX thresholds ─────────────────────────────────────────────────────
@@ -50,10 +50,10 @@ ZONE_B = (1474, 1828)   # extended to 30:28 so release is generated naturally
 #
 # Release fade duration = dmx / RELEASE_RATE * 1000 ms
 #   RELEASE_RATE = 150  → 255→0 in ~1.7 s
-RELEASE_RATE        = 150   # DMX units / second — decay speed
-HOLD_FRAMES_NORMAL  = 15    # frames before release starts (normal fire)
-HOLD_FRAMES_BURST   = 8     # frames before release starts (explosion moments)
-BURST_THRESH_DMX    = 180   # DMX value above which burst hold is used
+RELEASE_RATE        = 500   # DMX units / second — fast flash decay (160→0 in ~320 ms)
+HOLD_FRAMES_NORMAL  = 3     # frames before release starts (~100 ms hold)
+HOLD_FRAMES_BURST   = 2     # frames before release starts (~67 ms hold)
+BURST_THRESH_DMX    = 120   # DMX value above which burst hold is used (adjusted for new apex)
 
 # ── Cue filter ────────────────────────────────────────────────────────────────
 DELTA_THRESH       = 3    # minimum DMX value to emit a cue (ignore noise near 0)
