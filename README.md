@@ -12,9 +12,9 @@ Roll back any time with: `git checkout good-state-2026-04-28`
 
 | Channel | Range | Mean | Notes |
 |---|---|---|---|
-| ch2 backlight | 11–100 | 60.5 | soft 6 s fade-out at 31:50 |
+| ch2 backlight | 1–81 | 31.8 | halved bias + thunderstorm dips synced to ch7 |
 | ch5 corridor  | 40–149 | 61.7 | `SABER2_BIAS=44` |
-| ch7 saber WW  | — | — | unchanged |
+| ch7 saber WW  | 2–255 | 102.7 | exports `ch7_strobe_times.json` |
 
 ---
 
@@ -70,7 +70,11 @@ All three follow-the-video channels are auto-generated. Edit the constants at th
 | `BACKLIGHT_FLOOR` | 1 | absolute minimum during body (DIPs go to 0) |
 | `BACKLIGHT_BASE_CAP` | **15** | ceiling of inverse-luma base before breath/wobble |
 | `BACKLIGHT_HARD_CAP` | **100** | absolute ceiling — peaks with chaos can reach this |
-| `BACKLIGHT_BIAS` | **47** | constant uplift → sets body mean (currently ≈ 60) |
+| `BACKLIGHT_BIAS` | **17** | constant uplift → sets body mean (currently ≈ 32) |
+| `THUNDER_ENABLE` | True | mirror every ch7 strobe with an inverse dip on ch2 |
+| `THUNDER_MIN_DMX` | 80 | only mirror saber flashes brighter than this |
+| `THUNDER_DOWN/HOLD/RECOVER` | 30 ms / 3 f / 180 ms | shape of the lightning-shadow dip |
+| `THUNDER_MIN_GAP_F` | 6 | min frames between consecutive thunder dips (skip dense bursts) |
 | `BREATH_AMP_MAX / MIN` | 30 / 4 | breath swing in pitch-dark / bright video |
 | `BREATH_PERIOD_DARK_SEC` | 9.0 | slowest breath period |
 | `BREATH_PERIOD_BRIGHT_SEC` | 3.5 | fastest breath period |

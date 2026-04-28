@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED — do not edit by hand.
-// Generated: 2026-04-28 15:41 UTC  by gen_saber_cues.py
+// Generated: 2026-04-28 19:05 UTC  by gen_saber_cues.py
 // Source: controlled_burn_luma.csv  metric: yp99_raw
 //
 // ADJ Saber Spot WW — PER-SECOND PULSE MODEL on p99

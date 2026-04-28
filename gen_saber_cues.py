@@ -25,6 +25,8 @@ from datetime import datetime
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH     = os.path.join(PROJECT_ROOT, "controlled_burn_luma.csv")
 OUTPUT_PATH  = os.path.join(PROJECT_ROOT, "src", "cues_saber_ww.h")
+# Side-file: every "strobe-like" attack moment (sec, frame) for ch2 sync.
+STROBE_TIMES_PATH = os.path.join(PROJECT_ROOT, "ch7_strobe_times.json")
 
 # ── ADJ Saber Spot WW ─────────────────────────────────────────────────────────
 SABER_CH   = 7    # DMX channel 7 = dimmer (address 7, 1-ch mode)
@@ -236,6 +238,11 @@ def generate_cues(data):
     cues = []
     cues.append((0, 0, 0, 0, 0, 0, "hard black at start"))
 
+    # Track every strobe-like attack (sec, frame, dmx) for ch2 thunderstorm sync.
+    # Populated by EXTRA pass and STROBE-zone pass below; written by main().
+    global STROBE_TIMES
+    STROBE_TIMES = []
+
     rng = random.Random(RANDOM_SEED)
     last_brightness = 0  # for anti-repetition across consecutive flashes
 
@@ -332,6 +339,7 @@ def generate_cues(data):
             ah, am, as_, af = normalise(h0, m0, s0, cur_f)
             cues.append((ah, am, as_, af, 0, v,
                          f"{mm}:{ss:02d} EXTRA flash#{i+1} att {v}"))
+            STROBE_TIMES.append((ah*3600 + am*60 + as_, af, v, "EXTRA"))
             rh, rm, rs, rf = normalise(h0, m0, s0, cur_f + EXTRA_HOLD_FRAMES)
             fade = rng.randint(EXTRA_FADE_MS[0], EXTRA_FADE_MS[1])
             cues.append((rh, rm, rs, rf, fade, 0,
@@ -380,6 +388,7 @@ def generate_cues(data):
             ah, am, as_, af = normalise(h, m, s, cur_f)
             cues.append((ah, am, as_, af, 0, v,
                          f"{sec//60}:{sec%60:02d}+{cur_f}f STROBE att {v}"))
+            STROBE_TIMES.append((ah*3600 + am*60 + as_, af, v, "STROBE"))
             rh, rm, rs, rf = normalise(h, m, s, cur_f + STROBE_HOLD_FRAMES)
             fade = rng.randint(STROBE_FADE_MS[0], STROBE_FADE_MS[1])
             cues.append((rh, rm, rs, rf, fade, 0,
@@ -484,6 +493,13 @@ def main():
 
     write_header(cues, OUTPUT_PATH)
     print(f"  Written → {OUTPUT_PATH}")
+
+    # Export strobe times for ch2 thunderstorm sync
+    import json
+    with open(STROBE_TIMES_PATH, "w", encoding="utf-8") as f:
+        json.dump([{"sec": t[0], "frame": t[1], "dmx": t[2], "kind": t[3]}
+                   for t in STROBE_TIMES], f, indent=1)
+    print(f"  Wrote {len(STROBE_TIMES)} strobe times -> {STROBE_TIMES_PATH}")
 
     # Quick stats — attack cues only (dmx > 0, not the hard-black bookends)
     dmx_vals = [c[5] for c in cues if c[5] > 0 and "black" not in c[6]]

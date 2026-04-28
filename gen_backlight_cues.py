@@ -44,7 +44,7 @@ OUTPUT_PATH  = os.path.join(PROJECT_ROOT, "src", "cues_control_burn.h")
 BACKLIGHT_FLOOR    = 1       # absolute minimum during composition body
 BACKLIGHT_BASE_CAP = 15      # ceiling of the inverse base before breath/wobble
 BACKLIGHT_HARD_CAP = 100     # total ceiling — lamp never exceeds this
-BACKLIGHT_BIAS     = 47      # constant uplift so mean (body) ≈ 60
+BACKLIGHT_BIAS     = 17      # constant uplift — halved (was 47) so body mean ≈ 30 (half of 60)
 YAVG_BRIGHT_REF    = 110.0   # video luma above this → backlight at floor
 SMOOTH_WINDOW_SEC  = 5       # rolling mean window on yavg
 
@@ -160,6 +160,19 @@ FLICKER_RANGES = [
     (29,46, 29,49,  5, 40, 3,  6,  90),   # 29:46 – 29:49  subtle 5–40
 ]
 FLICKER_RANDOM_SEED = 7
+
+# ── THUNDERSTORM SYNC (ch7 → ch2 inverse strobes) ─────────────────────────
+# Reads ch7_strobe_times.json (written by gen_saber_cues.py) and creates an
+# "inversed strobe" on ch2 at every saber flash: backlight snaps to 0 right when
+# the saber peaks, holds dark briefly, then recovers — produces a thunderstorm
+# / lightning-shadow effect (saber bright ↔ backlight dark).
+THUNDER_TIMES_PATH   = os.path.join(PROJECT_ROOT, "ch7_strobe_times.json")
+THUNDER_ENABLE       = True
+THUNDER_MIN_DMX      = 80     # only mirror saber flashes above this DMX (skip dim sub-flashes)
+THUNDER_DOWN_MS      = 30     # ultra-fast snap to dark (lightning-fast)
+THUNDER_HOLD_FRAMES  = 3      # ~100 ms of darkness
+THUNDER_RECOVER_MS   = 180    # quick recover to base value
+THUNDER_MIN_GAP_F    = 6      # min frames between consecutive thunder dips (skip dense bursts)
 
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -302,6 +315,38 @@ def generate_cues(data):
         rh2, rm2, rs2, rf2 = normalise(h0, m0, s0, ff + DIP_HOLD_FRAMES)
         cues.append((rh2, rm2, rs2, rf2, base_dmx, DIP_RECOVER_MS,
                      f"{mm}:{ss:02d}+{ff+DIP_HOLD_FRAMES}f DIP ↑ back to {base_dmx} ({DIP_RECOVER_MS}ms)"))
+
+    # ── THUNDERSTORM DIPS (mirror every ch7 strobe) ───────────────────────────
+    if THUNDER_ENABLE and os.path.exists(THUNDER_TIMES_PATH):
+        import json as _json
+        with open(THUNDER_TIMES_PATH, "r", encoding="utf-8") as _f:
+            _strobes = _json.load(_f)
+        # Sort and de-dense — skip strobes that fall too close to a previous one.
+        _strobes.sort(key=lambda r: r["sec"] * 30 + r["frame"])
+        _last_total_f = -10**9
+        _added = 0
+        for _s in _strobes:
+            if _s["dmx"] < THUNDER_MIN_DMX:
+                continue
+            _total_f = _s["sec"] * 30 + _s["frame"]
+            if _total_f - _last_total_f < THUNDER_MIN_GAP_F:
+                continue
+            _last_total_f = _total_f
+            _ev_sec = _s["sec"]
+            if _ev_sec not in yavg_sm_map:
+                continue
+            _base = compute_oscillating_dmx(_ev_sec, yavg_sm_map[_ev_sec])
+            _h0, _m0, _s0 = sec_to_hms(_ev_sec)
+            _ah, _am, _as, _af = normalise(_h0, _m0, _s0, _s["frame"])
+            cues.append((_ah, _am, _as, _af, 0, THUNDER_DOWN_MS,
+                         f"THUNDER ↓ 0 ({THUNDER_DOWN_MS}ms) sync ch7 dmx={_s['dmx']}"))
+            _rh, _rm, _rs, _rf = normalise(_h0, _m0, _s0, _s["frame"] + THUNDER_HOLD_FRAMES)
+            cues.append((_rh, _rm, _rs, _rf, _base, THUNDER_RECOVER_MS,
+                         f"THUNDER ↑ back to {_base} ({THUNDER_RECOVER_MS}ms)"))
+            _added += 1
+        print(f"  THUNDER: added {_added} inverse-strobe dips from {len(_strobes)} ch7 strobes")
+    elif THUNDER_ENABLE:
+        print(f"  THUNDER: WARNING {THUNDER_TIMES_PATH} not found — run gen_saber_cues.py first")
 
     # ── INJECTED FLICKER EVENTS ─────────────────────────────────────────────────
     rng = random.Random(FLICKER_RANDOM_SEED)
