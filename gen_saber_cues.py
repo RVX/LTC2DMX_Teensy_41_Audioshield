@@ -2,14 +2,18 @@
 """
 gen_saber_cues.py — Generate src/cues_saber_ww.h for the ADJ Saber Spot WW
                     DMX address 7, 1-channel mode (dimmer only)
-                    Follows fire intensity via luma p99 per second.
+                    ENVELOPE FOLLOWER on luma p99.
 
 Usage:  python gen_saber_cues.py
 Output: src/cues_saber_ww.h
 
-p99 tracks the top 1% of pixels — it catches micro-sparks and the leading
-edge of explosions before they bloom, making it ideal for a fast spotlight
-that complements the Varytec (which follows p95).
+Envelope follower model
+  Attack  : instant snap to peak p99 value (0 ms)
+  Release : linear decay at RELEASE_RATE DMX units/second
+              → from DMX 255 to 0 in ~3 seconds (configurable)
+  Result  : the lamp leaps to match every micro-spark/explosion peak,
+            then glows down smoothly instead of cutting off instantly.
+            This creates a warm "fire afterglow" tail after each burst.
 """
 
 import csv
@@ -36,9 +40,16 @@ P99_FLOOR = 30    # p99 below this → DMX 2 (ember floor glow)
 ZONE_A = (308, 1315)
 ZONE_B = (1474, 1824)
 
+# ── Envelope follower parameters ─────────────────────────────────────────────
+# Attack: instant — lamp snaps to every p99 peak immediately (0 ms fade).
+# Release: linear decay at RELEASE_RATE DMX units per second.
+#   RELEASE_RATE = 80  →  255→0 in ~3.2 s  (snappy, stays within burst gaps)
+#   RELEASE_RATE = 50  →  255→0 in ~5.1 s  (longer warm glow between bursts)
+ATTACK_MS    = 0    # ms — instant snap on rising edge
+RELEASE_RATE = 80   # DMX units / second — linear decay on falling edge
+
 # ── Cue filter ────────────────────────────────────────────────────────────────
 DELTA_THRESH  = 3    # minimum DMX change to emit a new cue
-EMBER_DARK_S  = 25   # consecutive dark seconds before valley-ember cue
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -52,21 +63,6 @@ def p99_to_dmx(p99: float) -> int:
     # Linear: FLOOR → APEX over p99 range [P99_FLOOR, 255]
     t = (p99 - P99_FLOOR) / (255.0 - P99_FLOOR)
     return int(round(SABER_FLOOR + t * (SABER_APEX - SABER_FLOOR)))
-
-
-def rise_fade(p99: float) -> int:
-    """Snap rise: ultra-fast for bright sparks, slightly padded for dim ones."""
-    if p99 >= 200: return 0    # instant snap
-    if p99 >= 100: return 30   # 30 ms
-    if p99 >= 50:  return 60   # 60 ms
-    return 100                 # 100 ms
-
-
-def fall_fade(last_dmx: int) -> int:
-    """Fall from current brightness: faster from bright, slower from dim."""
-    if last_dmx >= 120: return 50    # 50 ms
-    if last_dmx >= 60:  return 100   # 100 ms
-    return 200                       # 200 ms
 
 
 def sec_to_hms(sec: int):
@@ -98,51 +94,90 @@ def load_p99(csv_path: str):
     return data
 
 
+def compute_envelope(data):
+    """
+    Compute an envelope-follower curve over the raw p99→DMX values.
+
+    For each second inside a fire zone:
+      - If p99_dmx >= envelope: ATTACK  — envelope snaps up instantly.
+      - If p99_dmx <  envelope: RELEASE — envelope decays linearly at
+                                           RELEASE_RATE DMX units / second.
+
+    Seconds outside fire zones reset the envelope to 0.
+    Returns {second: dmx_value} dict.
+    """
+    p99_map = {sec: p99 for sec, p99 in data}
+    all_secs = sorted(p99_map.keys())
+    env = {}
+    prev = 0
+    prev_sec = None
+    for sec in all_secs:
+        if not in_fire_zone(sec):
+            prev = 0
+            prev_sec = None
+            continue
+        target = p99_to_dmx(p99_map[sec])
+        if target >= prev:
+            # Attack: snap to peak
+            env[sec] = target
+        else:
+            # Release: linear decay, accounting for any time gap
+            elapsed = (sec - prev_sec) if prev_sec is not None else 1
+            env[sec] = max(0, prev - RELEASE_RATE * elapsed)
+        prev = env[sec]
+        prev_sec = sec
+    return env
+
+
 def generate_cues(data):
     """
-    Produce list of (h, m, s, fade_ms, dmx_val, comment) cue tuples.
-    Covers only fire zones; outside zones the channel stays at its last value
-    (naturally dark after zone exit since p99 drops to ~0 at zone boundaries).
-    """
-    cues = []
+    Envelope-follower cue generator.
 
-    # Hard black at composition start
+    Strategy:
+      1. Pre-compute the full envelope (fast attack, slow release).
+      2. Scan for transitions:
+           ATTACK  — envelope rises  → emit snap cue (0 ms) at the peak.
+           RELEASE — envelope starts falling → emit ONE fade-to-0 cue
+                      with fadeMs = current_dmx / RELEASE_RATE * 1000.
+                      A subsequent attack cue will interrupt the fade.
+      3. Emit no cue during the release glide (the hardware fade handles it).
+    """
+    env = compute_envelope(data)
+    env_secs = sorted(env.keys())
+
+    cues = []
     cues.append((0, 0, 0, 0, 0, "hard black at start"))
 
-    last_dmx   = 0
-    dark_count = 0   # consecutive DARK seconds (dmx == 0) inside fire zones
+    last_dmx   = 0   # last emitted DMX target
+    in_release = False
 
-    for sec, p99 in data:
-        if not in_fire_zone(sec):
-            # Reset dark streak when outside fire zones
-            dark_count = 0
-            continue
+    for sec in env_secs:
+        env_val = env[sec]
 
-        dmx   = p99_to_dmx(p99)
-        delta = abs(dmx - last_dmx)
+        if env_val > last_dmx + DELTA_THRESH:
+            # ── ATTACK: rising edge ──────────────────────────────────────────
+            h, m, s = sec_to_hms(sec)
+            cues.append((h, m, s, ATTACK_MS, env_val,
+                         f"{sec//60}:{sec%60:02d} attack→dmx{env_val}"))
+            last_dmx   = env_val
+            in_release = False
 
-        if dmx == 0:
-            dark_count += 1
-            # Valley ember: one DMX-floor touch after 25 consecutive dark seconds
-            if dark_count == EMBER_DARK_S:
-                h, m, s = sec_to_hms(sec)
-                cues.append((h, m, s, 5000, SABER_FLOOR,
-                             f"{sec//60}:{sec%60:02d} valley-ember ({EMBER_DARK_S}s dark)"))
-                last_dmx = SABER_FLOOR
-            continue
-        else:
-            dark_count = 0
+        elif env_val < last_dmx - DELTA_THRESH and not in_release:
+            # ── RELEASE: start of descent ────────────────────────────────────
+            # Emit a single linear fade from current value to 0.
+            # Duration = time for RELEASE_RATE to drain last_dmx to 0.
+            fade_ms = int(last_dmx / RELEASE_RATE * 1000)
+            h, m, s  = sec_to_hms(sec)
+            cues.append((h, m, s, fade_ms, 0,
+                         f"{sec//60}:{sec%60:02d} release dmx{last_dmx}→0 over {last_dmx/RELEASE_RATE:.1f}s"))
+            last_dmx   = 0   # fading to 0; next attack overrides
+            in_release = True
 
-        if delta < DELTA_THRESH:
-            continue  # not worth a cue
+        # While in release (env still decaying), skip — hardware fade does it.
+        # in_release is cleared only on next attack.
 
-        h, m, s = sec_to_hms(sec)
-        fade    = rise_fade(p99) if dmx > last_dmx else fall_fade(last_dmx)
-        cues.append((h, m, s, fade, dmx, f"{sec//60}:{sec%60:02d} p99={int(p99)}"))
-        last_dmx = dmx
-
-    # Explicit fade-to-black at end of fade-out section (mirrors Varytec)
-    cues.append((0, 31, 38, 22000, 0, "final fade to black"))
+    # Hard black at end of composition
+    cues.append((0, 31, 38, 0, 0, "hard black at end"))
 
     return cues
 
@@ -154,18 +189,17 @@ def write_header(cues, output_path: str):
     lines.append(f"// Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC  by gen_saber_cues.py")
     lines.append("// Source: controlled_burn_luma.csv  metric: yp99_raw")
     lines.append("//")
-    lines.append("// ADJ Saber Spot WW")
+    lines.append("// ADJ Saber Spot WW — ENVELOPE FOLLOWER on p99")
     lines.append(f"//   DMX address {SABER_CH} · 1-channel mode (CH{SABER_CH} = dimmer, 0–255)")
-    lines.append("//   Follows fire p99: brighter on micro-sparks and leading explosion edges.")
-    lines.append("//   Complementary to the Varytec (ch2-4) which follows p95.")
+    lines.append("//   Attack  : instant snap (0 ms) to every p99 peak.")
+    lines.append(f"//   Release : linear decay at {RELEASE_RATE} DMX/s  (≈{255/RELEASE_RATE:.1f}s from DMX 255 to 0).")
+    lines.append("//   One fade-to-0 cue emitted at start of each release phase;")
+    lines.append("//   subsequent attack cue overrides the ongoing fade on hardware.")    
     lines.append("//")
     lines.append("// p99 → DMX mapping:")
     lines.append(f"//   p99 <  {P99_DARK:3d}  → DMX   0  (dark)")
     lines.append(f"//   p99 <  {P99_FLOOR:3d}  → DMX   2  (floor ember)")
-    lines.append(f"//   p99 = {P99_FLOOR:3d}  → DMX   2")
     lines.append(f"//   p99 = 255  → DMX {SABER_APEX}")
-    lines.append("// Rise fades: ≥200→0ms snap  ≥100→30ms  ≥50→60ms  else 100ms")
-    lines.append("// Fall fades: ≥120→50ms  ≥60→100ms  else 200ms")
     lines.append("")
     lines.append('#include "dmx_controller.h"')
     lines.append("")
