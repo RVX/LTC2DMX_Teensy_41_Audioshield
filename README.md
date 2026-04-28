@@ -33,9 +33,9 @@ Switch by changing `default_envs` in `platformio.ini`. All frame-rate constants 
 
 | CH | Fixture | Address | Mode | Behaviour |
 |----|---------|---------|------|-----------|
-| 2 | Varytec LED Theater Spot 50 3200K × 4 | 002 | 3-ch (Master/Fine/Strobe) | p95 luma fire-follow; floor=2, apex=150 |
-| 5 | ADJ Saber Spot WW (Unit 2) | 005 | 1-ch dimmer | Fixed DMX 150 — constant warm wash |
-| 7 | ADJ Saber Spot WW (Unit 1) | 007 | 1-ch dimmer | p99 envelope follower — instant attack, ~3.2 s decay |
+| 2 | Varytec LED Theater Spot 50 3200K × 4 | 002 | 3-ch (Master/Fine/Strobe) | Inverse-luma backlight; erratic breath/wobble/chaos; injected DIPs + flickers |
+| 5 | ADJ Saber Spot WW (Unit 2) | 005 | 1-ch dimmer | Corridor — slightly inversed to ch2 (dim when ch2 lifts) |
+| 7 | ADJ Saber Spot WW (Unit 1) | 007 | 1-ch dimmer | p99 envelope follower + chaotic-fireworks strobe zones |
 
 `DMX_UNIVERSE_SIZE=7` covers all channels. `platformio.ini` build flags: `DMX_BASE_ADDR=2`, `DMX_NUM_CH=3`.
 
@@ -44,6 +44,71 @@ Front panel: **Mode → 3 CH → Enter**, **Address → 002**.
 
 ### ADJ Saber Spot WW setup
 Front panel: **1 CH mode**, addresses **005** and **007** respectively.
+
+---
+
+## ⚡ FAST-TWEAK CHEAT SHEET (pre-opening)
+
+All three follow-the-video channels are auto-generated. Edit the constants at the top of each generator script, run it, then `pio run -e controlled_burn --target upload`.
+
+### `gen_backlight_cues.py` — ch2 Varytec backlight
+| Constant | Current | Effect |
+|---|---|---|
+| `BACKLIGHT_FLOOR` | 1 | absolute minimum during body (DIPs go to 0) |
+| `BACKLIGHT_BASE_CAP` | **15** | ceiling of inverse-luma base before breath/wobble |
+| `BACKLIGHT_HARD_CAP` | **100** | absolute ceiling — peaks with chaos can reach this |
+| `BACKLIGHT_BIAS` | **47** | constant uplift → sets body mean (currently ≈ 60) |
+| `BREATH_AMP_MAX / MIN` | 30 / 4 | breath swing in pitch-dark / bright video |
+| `BREATH_PERIOD_DARK_SEC` | 9.0 | slowest breath period |
+| `BREATH_PERIOD_BRIGHT_SEC` | 3.5 | fastest breath period |
+| `WOBBLE_AMP_MAX / MIN` | 12 / 3 | narrative micro-jitter amplitude |
+| `CHAOS_AMP_MAX / MIN` | 16 / 3 | erratic multi-sine layer (3 incommensurate periods + per-sec noise) |
+| `EMIT_EVERY_SEC / FADE_MS` | 2 / 1000 | cue cadence — keep ≥2 s to stay under Teensy RAM cap |
+| `DIP_EVENTS_MMSS` | list | timestamps where light snaps to 0 then recovers (`(mm,ss)` or `(mm,ss,frame)` for frame-precise) |
+| `FLICKER_EVENTS` | list | single-burst flickers `(mm,ss,lo,hi,n,gap_lo,gap_hi,fade_ms)` |
+| `FLICKER_RANGES` | list | continuous random flicker windows `(start_mm,start_ss,end_mm,end_ss,lo,hi,gap_lo,gap_hi,fade_ms)` |
+
+### `gen_saber_ww2_cues.py` — ch5 corridor (NEW: slightly inversed to ch2)
+| Constant | Current | Effect |
+|---|---|---|
+| `SABER2_FLOOR` | 2 | minimum — corridor never fully off |
+| `SABER2_BASE_CAP` | **15** | ceiling of brightness-following base |
+| `SABER2_HARD_CAP` | **50** | absolute peak with breath/chaos |
+| `BREATH_AMP_MAX / MIN` | 8 / 1 | breath swing |
+| `BREATH_PERIOD_SEC` | 11.0 | slow, longer than ch2 → decoupled feel |
+| `WOBBLE_AMP_MAX / MIN` | 4 / 1 | jitter |
+| `CHAOS_AMP_MAX / MIN` | 6 / 1 | tiny erratic layer |
+
+### `gen_saber_cues.py` — ch7 envelope follower + strobe zones
+| Constant | Current | Effect |
+|---|---|---|
+| `RELEASE_RATE` | (chaotic fireworks model) | decay shape |
+| `STROBE_TRIGGER_PROB` | 0.30 | probability per second of firing a strobe in zone |
+| `STROBE_MIN_GAP_SEC` | 1 | minimum gap between strobes |
+| `STROBE_FADE_MS` | (30, 70) | strobe fade range |
+| `STROBE_OVERRIDE_RANGE` | 11:20–17:40 | window where strobe behaviour overrides envelope |
+| `STROBE_SUPPRESS_SEC` | [(8:30–8:40), (9:30–9:47)] | windows where ALL strobes are suppressed |
+| `EXTRA` | list | additional manual strobe timestamps |
+| `BRIGHTNESS_JITTER` | 0.30 | per-strobe brightness variation |
+| `RANDOM_SEED` | 42 | reproducibility |
+
+### Build sequence after any tweak
+```powershell
+$env:PYTHONIOENCODING="utf-8"
+python gen_backlight_cues.py    # ch2
+python gen_saber_ww2_cues.py    # ch5
+python gen_saber_cues.py        # ch7
+pio run -e controlled_burn --target upload
+```
+
+### Visual verification
+```powershell
+python analyze_movie_luma.py --comp controlled_burn --output lumaplots/controlled_burn_lumaXX.png
+```
+Plot colours: blue=ch2 Varytec, lime=ch7 Saber, violet=ch5 corridor.
+
+### Memory budget warning
+Teensy 4.1 RAM1 fills at ~2000 ch2 cues. If a build fails with `program exceeds memory space`, raise `EMIT_EVERY_SEC` or `DELTA_SKIP` in the offending generator to reduce cue count.
 
 ---
 
