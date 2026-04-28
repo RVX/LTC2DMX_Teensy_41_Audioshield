@@ -47,7 +47,7 @@ COMPOSITIONS = {
                 "parser": "W",
             },
             {
-                "label":  "ADJ Saber Spot WW ch5 (base 80 ±30% osc)",
+                "label":  "ADJ Saber Spot WW ch5 (base 80 ±35% osc)",
                 "cues_h": PROJECT / "src" / "cues_saber_ww2.h",
                 "color":  "#ce93d8",   # soft violet / lavender
                 "parser": "W2",

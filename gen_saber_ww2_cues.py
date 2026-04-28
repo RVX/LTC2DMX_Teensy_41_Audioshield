@@ -29,7 +29,7 @@ OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "src", "cues_saber_ww2.h")
 # ── DMX mapping ───────────────────────────────────────────────────────────────
 SABER2_CH   = 5          # ADJ Saber Spot WW Unit 2 — DMX channel
 BASE_DMX    = 80         # centre value
-SWING       = 0.30       # ±30 % of base
+SWING       = 0.35       # ±35 % of base
 DMX_MIN     = int(round(BASE_DMX * (1.0 - SWING)))   # 56
 DMX_MAX     = int(round(BASE_DMX * (1.0 + SWING)))   # 104
 FADE_MS     = 2000       # ms for each 1-second step interpolation
