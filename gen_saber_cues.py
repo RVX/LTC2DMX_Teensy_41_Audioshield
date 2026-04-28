@@ -79,16 +79,17 @@ MIN_ATTACK_GAP_SEC = 0   # no per-second cooldown — sub-flashes drive density
 # random intensities in EXTRA_DMX_RANGE, very short decay (flash/strobe feel).
 # These run regardless of fire-zone membership.
 EXTRA_FLASH_MOMENTS_MMSS = [
-    (2,24), (3,11), (3,20), (3,30), (3,38), (3,52), (4, 2), (4,59),
-    (5, 7), (5,12), (5,22), (5,36), (5,43), (5,51),
-    (6, 1), (6, 3), (6, 4), (6,26), (6,55),
+    (2,25), (2,55), (3,11), (3,14), (3,20), (3,29), (3,38), (3,42),
+    (3,52), (4, 2), (4,27), (4,54), (4,59),
+    (5, 9), (5,16), (5,22), (5,25), (5,36), (5,43), (5,51),
+    (6, 1), (6, 3), (6, 4), (6,12), (6,26), (6,38), (6,55),
 ]
 EXTRA_DMX_MIN        = 150
 EXTRA_DMX_MAX        = 255
-EXTRA_FLASH_COUNT    = (4, 6)     # min,max micro-flashes per burst
-EXTRA_GAP_FRAMES     = (1, 3)     # 33–100 ms between micro-flashes
+EXTRA_FLASH_COUNT    = (1, 4)     # min,max micro-flashes per burst (random, not always flicker)
+EXTRA_GAP_FRAMES     = (1, 4)     # 33–133 ms between micro-flashes
 EXTRA_HOLD_FRAMES    = 1          # 33 ms hold
-EXTRA_FADE_MS        = (40, 90)   # ultra-short decay per flash
+EXTRA_FADE_MS        = (40, 110)  # ultra-short decay per flash
 
 
 # ─────────────────────────────────────────────────────────────────────────────
