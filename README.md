@@ -74,16 +74,16 @@ All three follow-the-video channels are auto-generated. Edit the constants at th
 ### `gen_saber_ww2_cues.py` — ch5 corridor (NEW: slightly inversed to ch2)
 | Constant | Current | Effect |
 |---|---|---|
-| `SABER2_FLOOR` | 6 | minimum — corridor never fully off |
-| `SABER2_BASE_CAP` | **45** | ceiling of brightness-following base |
-| `SABER2_HARD_CAP` | **150** | absolute peak with breath/chaos |
-| `SABER2_BIAS` | **12** | constant uplift — adds body brightness without raising caps |
-| `BREATH_AMP_MAX / MIN` | 24 / 3 | breath swing |
+| `SABER2_FLOOR` | 12 | minimum — corridor never fully off |
+| `SABER2_BASE_CAP` | **90** | ceiling of brightness-following base |
+| `SABER2_HARD_CAP` | **220** | absolute peak with breath/chaos |
+| `SABER2_BIAS` | **24** | constant uplift — adds body brightness without raising caps |
+| `BREATH_AMP_MAX / MIN` | 48 / 6 | breath swing |
 | `BREATH_PERIOD_SEC` | 11.0 | slow, longer than ch2 → decoupled feel |
-| `WOBBLE_AMP_MAX / MIN` | 12 / 3 | jitter |
-| `CHAOS_AMP_MAX / MIN` | 18 / 3 | erratic layer |
-| `SAFETY_DMX` | **30** | hold value during safety zones (room never pitch-black on ch5) |
-| `SAFETY_OSC_AMP / PERIOD` | ±4 / 7 s | tiny oscillation during safety zones |
+| `WOBBLE_AMP_MAX / MIN` | 24 / 6 | jitter |
+| `CHAOS_AMP_MAX / MIN` | 36 / 6 | erratic layer |
+| `SAFETY_DMX` | **60** | hold value during ch5 safety zones (room never pitch-black) |
+| `SAFETY_OSC_AMP / PERIOD` | ±8 / 7 s | tiny oscillation during safety zones |
 | Safety zones | **0:00 → 0:29 and 30:00 → 31:38** | safety hold active outside body |
 
 ### `gen_saber_cues.py` — ch7 envelope follower + strobe zones

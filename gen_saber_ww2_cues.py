@@ -35,24 +35,24 @@ OUTPUT_PATH  = os.path.join(PROJECT_ROOT, "src", "cues_saber_ww2.h")
 SABER2_CH         = 5
 
 # *** TWEAKABLE ENVELOPE *** (kept low — corridor must stay soft)
-SABER2_FLOOR      = 6        # minimum during body — light never fully off
-SABER2_BASE_CAP   = 45       # ceiling of the brightness-following base
-SABER2_HARD_CAP   = 150      # absolute max with chaos/breath added
-SABER2_BIAS       = 12       # constant uplift — adds body brightness
+SABER2_FLOOR      = 12       # minimum during body — light never fully off
+SABER2_BASE_CAP   = 90       # ceiling of the brightness-following base
+SABER2_HARD_CAP   = 220      # absolute max with chaos/breath added
+SABER2_BIAS       = 24       # constant uplift — adds body brightness
 YAVG_BRIGHT_REF   = 110.0    # video luma above this → at BASE_CAP
 
 # Subtle oscillation so the corridor isn't a flat dimmer.
 # Amplitudes scale with brightness (the inverse of how ch2 scales).
 BREATH_PERIOD_SEC = 11.0     # slow, longer than ch2 so they feel decoupled
-BREATH_AMP_MAX    = 24       # ±24 DMX at full brightness (was 8)
-BREATH_AMP_MIN    = 3
+BREATH_AMP_MAX    = 48       # ±48 DMX at full brightness (was 24)
+BREATH_AMP_MIN    = 6
 WOBBLE_PERIOD_SEC = 5.7
-WOBBLE_AMP_MAX    = 12       # was 4
-WOBBLE_AMP_MIN    = 3
+WOBBLE_AMP_MAX    = 24       # was 12
+WOBBLE_AMP_MIN    = 6
 
 # Chaos layer (multi-sine) — tiny, just to shake off perfect periodicity.
-CHAOS_AMP_MAX     = 18       # was 6
-CHAOS_AMP_MIN     = 3
+CHAOS_AMP_MAX     = 36       # was 18
+CHAOS_AMP_MIN     = 6
 CHAOS_PERIODS_SEC = (4.3, 9.1, 13.7)
 CHAOS_PHASES      = (1.1, 3.0, 5.2)
 CHAOS_NOISE_SEED  = 4242
@@ -65,15 +65,15 @@ INTRO_FADE_MS     = 29000
 OUTRO_FADE_MS     = 8000
 
 START_RISE_TIME   = (0, 0, 29)   # start of body — leaves the 0-29s hold zone
-START_RISE_TARGET = 6            # gentle rise into a low corridor wash
+START_RISE_TARGET = 12           # gentle rise into a low corridor wash (doubled)
 END_FADE_TIME     = (0, 30,  0)  # body ends at 30:00, then safety-light hold begins
 END_BLACK_TIME    = (0, 31, 38)  # (legacy bookend — no longer used; light stays at SAFETY_DMX)
 
 # ── SAFETY-LIGHT HOLD ZONES ──
 # The room must never be pitch-black on ch5. From 0:00 → START_RISE_TIME and
 # from END_FADE_TIME onwards, hold at SAFETY_DMX with a tiny oscillation.
-SAFETY_DMX             = 30      # baseline value during hold zones
-SAFETY_OSC_AMP         = 4       # ±4 DMX tiny breath during hold zones
+SAFETY_DMX             = 60      # baseline value during hold zones (doubled)
+SAFETY_OSC_AMP         = 8       # ±8 DMX tiny breath during hold zones (doubled)
 SAFETY_OSC_PERIOD_SEC  = 7.0     # slow gentle pulse
 SAFETY_EMIT_EVERY_SEC  = 3       # cue every 3s (small motion, save RAM)
 SAFETY_FADE_MS         = 2500    # smooth interpolation between samples
