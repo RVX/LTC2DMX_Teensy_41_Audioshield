@@ -56,12 +56,22 @@ FRAME_W = 32
 FRAME_H = 18
 FRAME_BYTES = FRAME_W * FRAME_H   # 576 bytes per frame
 
+# Hot-pixel threshold (raw 0-255).  Pixels above this are counted as "on fire".
+# 180 ≈ top ~6 DN below Rec.709 white (235) — catches explosions, not ambient glow.
+HOT_THRESH = 180
+
 # ── 1. FFmpeg luma extraction ───────────────────────────────────────────────
 def extract_luma(movie_path):
     """
     Scale each frame to 32×18 gray at 1 fps, pipe as raw bytes.
-    Per frame (576 px) compute: mean, 95th-percentile, max.
-    Returns list of (second_index, yavg, yp95, ymax) tuples.
+    Per frame (576 px) compute:
+      - mean       : overall brightness (frame average)
+      - p95        : top 5% of pixels — catches hot areas, ignores specks
+      - pmax       : absolute brightest pixel — first indicator of any flash
+      - p99        : top 1% of pixels — micro-sparks + leading edge of explosions
+      - hot_frac   : fraction of pixels above HOT_THRESH, scaled ×255
+                     — measures explosion COVERAGE, 0=none, 255=full frame blazing
+    Returns list of (second_index, yavg, yp95, ymax, yp99, yhot) tuples.
     """
     import numpy as np
     cmd = [
@@ -70,7 +80,7 @@ def extract_luma(movie_path):
         "-f", "rawvideo", "pipe:1"
     ]
     print(f"→ Decoding {movie_path.name}")
-    print(f"  Extracting {FRAME_W}x{FRAME_H} gray frames at 1fps — mean + p95 + max per second…")
+    print(f"  Extracting {FRAME_W}x{FRAME_H} gray frames at 1fps — mean + p95 + max + p99 + hot_frac…")
     proc = subprocess.run(cmd, capture_output=True)
 
     raw = proc.stdout
@@ -78,11 +88,14 @@ def extract_luma(movie_path):
     rows = []
     for i in range(n_frames):
         frame = np.frombuffer(raw[i*FRAME_BYTES:(i+1)*FRAME_BYTES], dtype=np.uint8)
+        hot_frac = float(np.sum(frame > HOT_THRESH)) / FRAME_BYTES * 255.0
         rows.append((
             i,
             float(np.mean(frame)),
             float(np.percentile(frame, 95)),
             float(np.max(frame)),
+            float(np.percentile(frame, 99)),
+            hot_frac,
         ))
     print(f"  → {len(rows)} seconds extracted")
     return rows
@@ -183,16 +196,25 @@ def main():
         luma_rows = []
         import csv as _csv
         with open(OUT_CSV, newline="") as f:
+            header_line = f.readline()
+            f.seek(0)
             reader = _csv.DictReader(f)
+            fieldnames = reader.fieldnames or []
+            has_spatial = "yp95_raw" in fieldnames
+            has_p99     = "yp99_raw" in fieldnames
+            has_hot     = "yhot_0_255" in fieldnames
             for row in reader:
                 yavg = float(row["yavg_raw"])
-                yp95 = float(row["yp95_raw"]) if "yp95_raw" in row else yavg
-                ymax = float(row["ymax_raw"]) if "ymax_raw" in row else yavg
-                luma_rows.append((int(row["second"]), yavg, yp95, ymax))
+                yp95 = float(row["yp95_raw"]) if has_spatial else yavg
+                ymax = float(row["ymax_raw"]) if has_spatial else yavg
+                yp99 = float(row["yp99_raw"]) if has_p99 else yp95
+                yhot = float(row["yhot_0_255"]) if has_hot else 0.0
+                luma_rows.append((int(row["second"]), yavg, yp95, ymax, yp99, yhot))
         print(f"  → {len(luma_rows)} seconds loaded from CSV")
-        has_spatial = "yp95_raw" in open(OUT_CSV).readline()
         if not has_spatial:
-            print("  NOTE: CSV has only mean luma — re-run with --reextract to get p95/max hot-spot data")
+            print("  NOTE: CSV missing spatial metrics — re-run with --reextract")
+        elif not has_p99:
+            print("  NOTE: CSV missing p99/hot_frac columns — re-run with --reextract to add them")
     else:
         if not MOVIE.exists():
             sys.exit(f"ERROR: movie not found and no CSV to fall back on:\n  {MOVIE}")
@@ -204,12 +226,17 @@ def main():
     def norm(y):
         return max(0.0, min(255.0, (y - Y_BLACK) / (Y_WHITE - Y_BLACK) * 255.0))
 
-    # luma_rows: (sec, yavg_raw, yp95_raw, ymax_raw)
+    # luma_rows: (sec, yavg_raw, yp95_raw, ymax_raw, yp99_raw, yhot_raw)
     luma_norm = [
-        (sec, float(ya), norm(ya), float(yp), norm(yp), float(ym), norm(ym))
-        for sec, ya, yp, ym in luma_rows
+        (sec,
+         float(ya), norm(ya),
+         float(yp), norm(yp),
+         float(ym), norm(ym),
+         float(y99), norm(y99),
+         float(yh),  min(255.0, float(yh)))   # hot_frac already 0-255 scaled
+        for sec, ya, yp, ym, y99, yh in luma_rows
     ]
-    # columns: sec, ya_raw, ya_norm, yp_raw, yp_norm, ym_raw, ym_norm
+    # columns: sec, ya_raw, ya_norm, yp_raw, yp_norm, ym_raw, ym_norm, y99_raw, y99_norm, yh_raw, yh_norm
 
     # ── Write CSV (only when freshly extracted) ──────────────────────────
     if args.reextract or not OUT_CSV.exists():
@@ -218,14 +245,18 @@ def main():
             w.writerow(["second", "timecode",
                         "yavg_raw", "yavg_0_255",
                         "yp95_raw", "yp95_0_255",
-                        "ymax_raw", "ymax_0_255"])
-            for sec, ya, ya_n, yp, yp_n, ym, ym_n in luma_norm:
+                        "ymax_raw", "ymax_0_255",
+                        "yp99_raw", "yp99_0_255",
+                        "yhot_0_255"])   # hot fraction (0=none, 255=full frame)
+            for sec, ya, ya_n, yp, yp_n, ym, ym_n, y99, y99_n, yh, yh_n in luma_norm:
                 h, rem = divmod(sec, 3600)
                 mn, s  = divmod(rem, 60)
                 w.writerow([sec, f"{h:02d}:{mn:02d}:{s:02d}",
                             f"{ya:.2f}", f"{ya_n:.1f}",
                             f"{yp:.2f}", f"{yp_n:.1f}",
-                            f"{ym:.2f}", f"{ym_n:.1f}"])
+                            f"{ym:.2f}", f"{ym_n:.1f}",
+                            f"{y99:.2f}", f"{y99_n:.1f}",
+                            f"{yh:.1f}"])
     print(f"CSV → {OUT_CSV}")
 
     # ── Parse cues & simulate DMX arc ────────────────────────────────────
@@ -255,11 +286,15 @@ def main():
 
     COL_P95  = "#ff8c42"   # orange — p95 hot spots
     COL_PMAX = "#ff4444"   # red    — per-frame max
+    COL_P99  = "#f5e642"   # yellow — p99 micro-sparks / leading-edge of explosions
+    COL_HOT  = "#f06aac"   # pink   — hot-pixel coverage (explosion area fraction)
 
     seconds   = [r[0] for r in luma_norm]
     luma_vals = [r[2] for r in luma_norm]    # yavg normalised 0–255
     p95_vals  = [r[4] for r in luma_norm]    # yp95 normalised 0–255
     pmax_vals = [r[6] for r in luma_norm]    # ymax normalised 0–255
+    p99_vals  = [r[8] for r in luma_norm]    # yp99 normalised 0–255
+    hot_vals  = [r[10] for r in luma_norm]   # hot-pixel fraction × 255
 
     # Mean — background fill
     ax.fill_between(seconds, luma_vals, alpha=0.12, color=COL_LUMA)
@@ -271,12 +306,24 @@ def main():
     ax.fill_between(seconds, p95_vals, alpha=0.10, color=COL_P95)
     ax.plot(seconds, p95_vals,
             color=COL_P95, linewidth=1.2,
-            label="p95 luma (bright area, 5% of frame)", zorder=4)
+            label="p95 luma (top 5% pixels)", zorder=4)
+
+    # p99 — micro-sparks: top 1% of pixels, catches tiny leading-edge flashes
+    ax.plot(seconds, p99_vals,
+            color=COL_P99, linewidth=1.0, alpha=0.85, linestyle="-",
+            label="p99 luma (top 1% pixels — micro-sparks)", zorder=5)
 
     # pmax — absolute brightest pixel per second
     ax.plot(seconds, pmax_vals,
             color=COL_PMAX, linewidth=0.6, alpha=0.55, linestyle="-",
             label="Max luma (brightest pixel)", zorder=4)
+
+    # hot-pixel coverage — fraction of frame above raw 180/255, scaled to 0-255
+    # spike = explosion COVERS the frame; flat 0 = no fire at all
+    ax.fill_between(seconds, hot_vals, alpha=0.12, color=COL_HOT)
+    ax.plot(seconds, hot_vals,
+            color=COL_HOT, linewidth=1.0, alpha=0.8, linestyle="-",
+            label=f"Hot-pixel coverage (>{HOT_THRESH}/255, scaled)", zorder=5)
 
     if cues:
         dmx_secs = list(range(TOTAL_SEC + 1))
@@ -345,7 +392,9 @@ def main():
         brightest_avg = max(luma_norm, key=lambda r: r[2])
         print(f"\nVideo luma statistics — {LABEL}:")
         print(f"  mean avg   min={min(luma_vals):.1f}  max={max(luma_vals):.1f}  mean={sum(luma_vals)/len(luma_vals):.1f}")
-        print(f"  p95  avg   min={min(p95_vals):.1f}  max={max(p95_vals):.1f}  mean={sum(p95_vals)/len(p95_vals):.1f}")
+        print(f"  p95        min={min(p95_vals):.1f}  max={max(p95_vals):.1f}  mean={sum(p95_vals)/len(p95_vals):.1f}")
+        print(f"  p99        min={min(p99_vals):.1f}  max={max(p99_vals):.1f}  mean={sum(p99_vals)/len(p99_vals):.1f}")
+        print(f"  hot-cover  min={min(hot_vals):.1f}  max={max(hot_vals):.1f}  mean={sum(hot_vals)/len(hot_vals):.1f}  (>{HOT_THRESH} raw, scaled ×255)")
         print(f"  brightest frame (p95)  {tc(brightest_p95[0])}  ({brightest_p95[4]:.1f}/255)")
         print(f"  brightest frame (avg)  {tc(brightest_avg[0])}  ({brightest_avg[2]:.1f}/255)")
 
