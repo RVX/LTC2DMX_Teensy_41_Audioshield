@@ -76,6 +76,13 @@ DIP_EVENTS_MMSS = [
     (10,43), (10,50), (10,57), (11, 6),
     (14,34), (14,44), (14,49), (14,56),
     (15, 7), (15,18),
+    # Late-show batch
+    (17, 9), (17,15), (17,18),
+    (18, 6), (18,17), (18,18),
+    (19, 9),
+    (20,59),
+    (23, 8), (23,22), (23,52),
+    (24,36),
 ]
 DIP_DOWN_MS         = 80          # snap-down fade duration
 DIP_HOLD_FRAMES     = 4           # ~133 ms of darkness
@@ -101,6 +108,19 @@ FLICKER_EVENTS = [
     (13,58, 50, 80, 10, 1, 2, 40),
     (14,14, 50, 80, 10, 1, 2, 40),
     (15,27, 50, 80, 10, 1, 2, 40),
+    (19,28, 50, 80, 10, 1, 2, 40),
+    (23,29, 50, 80, 10, 1, 2, 40),
+    # Subtle flicker 5–40
+    (19,39,  5, 40, 6, 3, 6, 90),
+    # Subtle flicker 2–10
+    (24, 8,  2, 10, 6, 3, 6, 110),
+]
+
+# (start_mm, start_ss, end_mm, end_ss, dmx_lo, dmx_hi, gap_frames_min, gap_frames_max, fade_ms)
+# Continuous random flicker across a window — emits a flick every gap_random frames.
+FLICKER_RANGES = [
+    (19,59, 20,15,  2, 20, 4,  9, 110),   # 19:59 – 20:15  very subtle 2–20
+    (25,15, 25,28,  2,  8, 5, 12, 130),   # 25:15 – 25:28  very subtle 2–8
 ]
 FLICKER_RANDOM_SEED = 7
 
@@ -239,6 +259,37 @@ def generate_cues(data):
         rh2, rm2, rs2, rf2 = normalise(h0, m0, s0, cur_f + 2)
         cues.append((rh2, rm2, rs2, rf2, base_dmx, 300,
                      f"{mm}:{ss:02d} FLICK recover → {base_dmx}"))
+
+    # ── INJECTED FLICKER RANGES (continuous random flicker across a window) ──
+    for start_mm, start_ss, end_mm, end_ss, lo, hi, gap_lo, gap_hi, fade_ms in FLICKER_RANGES:
+        start_sec = start_mm * 60 + start_ss
+        end_sec_  = end_mm   * 60 + end_ss
+        if start_sec not in yavg_sm_map:
+            continue
+        cur_total_f = start_sec * 30
+        end_total_f = end_sec_  * 30
+        last_v = -999
+        idx = 0
+        while cur_total_f < end_total_f:
+            sec_now = cur_total_f // 30
+            for _ in range(6):
+                v = rng.randint(lo, hi)
+                if abs(v - last_v) >= max(2, (hi - lo) // 4):
+                    break
+            last_v = v
+            f_in_sec = cur_total_f % 30
+            h0, m0, s0 = sec_to_hms(sec_now)
+            ah, am, as_, af = normalise(h0, m0, s0, f_in_sec)
+            cues.append((ah, am, as_, af, v, fade_ms,
+                         f"{start_mm}:{start_ss:02d}-{end_mm}:{end_ss:02d} FLICK_RNG#{idx} → {v}"))
+            cur_total_f += rng.randint(gap_lo, gap_hi)
+            idx += 1
+        # Recover to whatever base would have been at the end of the window
+        if end_sec_ in yavg_sm_map:
+            base_end = compute_oscillating_dmx(end_sec_, yavg_sm_map[end_sec_])
+            eh, em, es = sec_to_hms(end_sec_)
+            cues.append((eh, em, es, 0, base_end, 400,
+                         f"{end_mm}:{end_ss:02d} FLICK_RNG recover → {base_end}"))
 
     # Outro: fade to black
     eh, em, es = END_FADE_TIME

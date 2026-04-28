@@ -94,7 +94,25 @@ EXTRA_FLASH_MOMENTS_MMSS = [
     (13,58),
     (14,14), (14,34), (14,44), (14,49), (14,56),
     (15, 7), (15,18), (15,27),
+    # Late-show batch (17:09..24:36) — simple snap-strobes (no flicker-only entries)
+    (17, 9), (17,15), (17,18),
+    (18, 6), (18,17), (18,18),
+    (19, 9),
+    (20,59),
+    (23, 8), (23,22), (23,52),
+    (24,36),
 ]
+
+# ── STROBE SUPPRESSION WINDOWS ─────────────────────────────────────────────────
+# Inside these (start_sec, end_sec) windows the chaotic-fireworks generator is
+# muted entirely — no flashes are emitted.
+STROBE_SUPPRESS_SEC = [
+    ( 8*60 + 30,  8*60 + 40),    # 8:30 – 8:40
+    ( 9*60 + 30,  9*60 + 47),    # 9:30 – 9:47
+]
+
+def in_suppress_window(sec: int) -> bool:
+    return any(a <= sec <= b for a, b in STROBE_SUPPRESS_SEC)
 EXTRA_DMX_MIN        = 150
 EXTRA_DMX_MAX        = 255
 EXTRA_FLASH_COUNT    = (1, 4)     # min,max micro-flashes per burst (random, not always flicker)
@@ -251,6 +269,8 @@ def generate_cues(data):
             continue
         if in_strobe_zone(sec):
             continue   # handled by the strobe pass below
+        if in_suppress_window(sec):
+            continue   # explicitly muted moments
         base_dmx = p99_to_dmx(p99)
         if base_dmx <= DELTA_THRESH:
             continue
@@ -323,6 +343,8 @@ def generate_cues(data):
     last_strobe_sec = -10
     for sec, p99 in data:
         if not in_strobe_zone(sec):
+            continue
+        if in_suppress_window(sec):
             continue
         base_dmx = p99_to_dmx(p99)
         if base_dmx < STROBE_ACTIVATE_DMX:
