@@ -37,27 +37,31 @@ CSV_PATH     = os.path.join(PROJECT_ROOT, "controlled_burn_luma.csv")
 OUTPUT_PATH  = os.path.join(PROJECT_ROOT, "src", "cues_control_burn.h")
 
 # ── Mapping parameters ───────────────────────────────────────────────────────
-BACKLIGHT_FLOOR    = 4       # never go fully black during composition body
-BACKLIGHT_CAP      = 170     # CAP — never go to max (255)
+BACKLIGHT_FLOOR    = 1       # absolute minimum during composition body
+BACKLIGHT_BASE_CAP = 100     # ceiling of the inverse base before breath/wobble
+BACKLIGHT_HARD_CAP = 180     # total ceiling — allows micro-peaks above 100 in pitch-dark video
 YAVG_BRIGHT_REF    = 110.0   # video luma above this → backlight at floor
 SMOOTH_WINDOW_SEC  = 5       # rolling mean window on yavg
 
-# ── Oscillation layers ───────────────────────────────────────────────────────
-BREATH_PERIOD_SEC  = 13.0
-BREATH_AMP         = 12      # ±12 DMX slow sine
-WOBBLE_PERIOD_SEC  = 4.7
-WOBBLE_AMP         = 5       # ±5 DMX faster narrative jitter
+# ── Oscillation layers (amplitudes scale with darkness — reactive breathing) ──
+BREATH_PERIOD_DARK_SEC   = 16.0   # slow deep breath when video is pitch-dark
+BREATH_PERIOD_BRIGHT_SEC = 6.0    # quicker, shallower breath when video is bright
+BREATH_AMP_MAX           = 50     # ±50 DMX in pitch-dark video
+BREATH_AMP_MIN           = 6      # ±6 DMX when video is bright
+WOBBLE_PERIOD_SEC        = 4.7
+WOBBLE_AMP_MAX           = 18     # narrative micro-jitter, scales with darkness
+WOBBLE_AMP_MIN           = 3
 
 # ── Cue emission cadence ─────────────────────────────────────────────────────
-EMIT_EVERY_SEC     = 2       # one cue every 2 s
+EMIT_EVERY_SEC     = 2       # one cue every 2 s — keep memory in check
 FADE_MS            = 2000    # fade between cues = 2 s → seamless interpolation
-DELTA_SKIP         = 2       # skip if change vs previous emitted cue < this
-INTRO_FADE_MS      = 28000   # smooth rise from black at start
+DELTA_SKIP         = 3       # skip if change vs previous emitted cue is small
+INTRO_FADE_MS      = 29000   # smoother rise from black at start
 OUTRO_FADE_MS      = 8000    # smooth fade-to-black at end
 
-# ── Composition bookends ─────────────────────────────────────────────────────
+# ── Composition bookends ────────────────────────────────────────────────
 START_RISE_TIME    = (0, 0,  1)   # h,m,s — when intro fade begins
-START_RISE_TARGET  = 30           # DMX value reached after INTRO_FADE_MS
+START_RISE_TARGET  = 40           # DMX value reached after INTRO_FADE_MS
 END_FADE_TIME      = (0, 30, 24)  # start of outro fade
 END_BLACK_TIME     = (0, 31, 38)  # final hard black
 
@@ -89,7 +93,7 @@ def smooth(values, window):
 def yavg_to_inverted_dmx(yavg_smooth):
     # Map yavg ∈ [0, YAVG_BRIGHT_REF] → darkness ∈ [1, 0]
     darkness = 1.0 - min(1.0, max(0.0, yavg_smooth / YAVG_BRIGHT_REF))
-    return BACKLIGHT_FLOOR + darkness * (BACKLIGHT_CAP - BACKLIGHT_FLOOR)
+    return BACKLIGHT_FLOOR + darkness * (BACKLIGHT_BASE_CAP - BACKLIGHT_FLOOR), darkness
 
 
 def sec_to_hms(sec):
@@ -120,18 +124,23 @@ def generate_cues(data):
         if (sec - rise_end_sec) % EMIT_EVERY_SEC != 0:
             continue
 
-        base   = yavg_to_inverted_dmx(yavg_sm)
-        breath = BREATH_AMP * math.sin(2 * math.pi * sec / BREATH_PERIOD_SEC)
-        wobble = WOBBLE_AMP * math.sin(2 * math.pi * sec / WOBBLE_PERIOD_SEC + 1.3)
+        base, darkness = yavg_to_inverted_dmx(yavg_sm)
+        # Breath: amplitude AND period scale with darkness — dark = deep & slow
+        breath_amp    = BREATH_AMP_MIN + darkness * (BREATH_AMP_MAX - BREATH_AMP_MIN)
+        breath_period = BREATH_PERIOD_BRIGHT_SEC + darkness * (BREATH_PERIOD_DARK_SEC - BREATH_PERIOD_BRIGHT_SEC)
+        wobble_amp    = WOBBLE_AMP_MIN + darkness * (WOBBLE_AMP_MAX - WOBBLE_AMP_MIN)
+
+        breath = breath_amp * math.sin(2 * math.pi * sec / breath_period)
+        wobble = wobble_amp * math.sin(2 * math.pi * sec / WOBBLE_PERIOD_SEC + 1.3)
         dmx    = int(round(max(BACKLIGHT_FLOOR,
-                               min(BACKLIGHT_CAP, base + breath + wobble))))
+                               min(BACKLIGHT_HARD_CAP, base + breath + wobble))))
 
         if abs(dmx - last_emit) < DELTA_SKIP:
             continue
 
         h, m, s = sec_to_hms(sec)
         cues.append((h, m, s, dmx, FADE_MS,
-                     f"yavg={yavg:5.1f} sm={yavg_sm:5.1f} inv→{int(round(base))} +breath={breath:+.0f} +wob={wobble:+.0f} → DMX {dmx}"))
+                     f"yavg={yavg:5.1f} sm={yavg_sm:5.1f} dk={darkness:.2f} inv→{int(round(base))} +br={breath:+.0f} +wb={wobble:+.0f} → DMX {dmx}"))
         last_emit = dmx
 
     # Outro: fade to black
@@ -151,15 +160,17 @@ def write_header(cues, output_path):
     lines.append(f"// Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC  by gen_backlight_cues.py")
     lines.append("// Source: controlled_burn_luma.csv  metric: yavg_raw (smoothed)")
     lines.append("//")
-    lines.append("// Varytec LED Theater Spot 50 3200K — INVERTED LUMA BACKLIGHT")
+    lines.append("// Varytec LED Theater Spot 50 3200K — INVERTED LUMA BACKLIGHT (REACTIVE)")
     lines.append("//   DMX channels 2 (Master) / 3 (Fine) / 4 (Strobe), 3-ch mode")
     lines.append("//   Brighter when the video is darker, dimmer when the video is bright.")
-    lines.append(f"//   DMX range: [{BACKLIGHT_FLOOR}, {BACKLIGHT_CAP}] — never reaches max (255).")
+    lines.append(f"//   Inverse base : DMX [{BACKLIGHT_FLOOR}, {BACKLIGHT_BASE_CAP}]   (hard cap {BACKLIGHT_HARD_CAP})")
+    lines.append("//   Breath/wobble amplitude AND period scale with darkness — pitch-dark video")
+    lines.append(f"//   produces deep slow swings of ±{BREATH_AMP_MAX} which can push the lamp briefly above {BACKLIGHT_BASE_CAP}.")
     lines.append("//")
     lines.append("//   Layered oscillation:")
-    lines.append(f"//     base       = inverse of {SMOOTH_WINDOW_SEC}-s smoothed yavg_raw")
-    lines.append(f"//     breath     = sine, period {BREATH_PERIOD_SEC:.1f}s, amplitude ±{BREATH_AMP}")
-    lines.append(f"//     wobble     = sine, period {WOBBLE_PERIOD_SEC:.1f}s, amplitude ±{WOBBLE_AMP}")
+    lines.append(f"//     base    = inverse of {SMOOTH_WINDOW_SEC}-s smoothed yavg_raw")
+    lines.append(f"//     breath  = sine, period {BREATH_PERIOD_BRIGHT_SEC:.1f}-{BREATH_PERIOD_DARK_SEC:.1f}s, amplitude ±{BREATH_AMP_MIN}-{BREATH_AMP_MAX} (darkness-driven)")
+    lines.append(f"//     wobble  = sine, period {WOBBLE_PERIOD_SEC:.1f}s, amplitude ±{WOBBLE_AMP_MIN}-{WOBBLE_AMP_MAX} (darkness-driven)")
     lines.append(f"//   Cue cadence: every {EMIT_EVERY_SEC}s with {FADE_MS}ms fade for smooth interpolation.")
     lines.append("//")
     lines.append('#include "dmx_controller.h"')
