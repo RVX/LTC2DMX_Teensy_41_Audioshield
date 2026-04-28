@@ -99,14 +99,16 @@ EXTRA_FADE_MS        = (40, 110)  # ultra-short decay per flash
 STROBE_ZONES_SEC = [
     (11*60 + 20, 17*60 + 40),    # 11:20 – 17:40 — match the snappy 2:20–7:40 feel
 ]
-STROBE_ACTIVATE_DMX  = 25         # base_dmx threshold below which the strobe stays silent
+STROBE_ACTIVATE_DMX  = 60         # base_dmx threshold below which the strobe stays silent
+STROBE_TRIGGER_PROB  = 0.30       # only ~30% of qualifying seconds actually fire — sparse strobe
 STROBE_DMX_MIN       = 100
 STROBE_DMX_MAX       = 230
-STROBE_FLASH_PROB_2  = 0.55       # chance of a 2nd flash when base ≥ 60
-STROBE_FLASH_PROB_3  = 0.30       # chance of a 3rd flash when base ≥ 110
-STROBE_GAP_FRAMES    = (1, 4)     # 33–133 ms between sub-flashes
-STROBE_HOLD_FRAMES   = 1
-STROBE_FADE_MS       = (40, 110)
+STROBE_FLASH_PROB_2  = 0.20       # 2nd flash rare — need clean black space to read as a strobe
+STROBE_FLASH_PROB_3  = 0.05       # 3rd flash very rare
+STROBE_GAP_FRAMES    = (3, 8)     # 100–267 ms between sub-flashes when they do happen
+STROBE_HOLD_FRAMES   = 1          # 33 ms hold
+STROBE_FADE_MS       = (30, 70)   # ultra-short decay so lamp hits 0 well before the next sec
+STROBE_MIN_GAP_SEC   = 1          # at least 1 fully dark second between strobes
 
 def in_strobe_zone(sec: int) -> bool:
     return any(a <= sec <= b for a, b in STROBE_ZONES_SEC)
@@ -307,19 +309,25 @@ def generate_cues(data):
 
     # ── STROBE-ZONE pass: ultra-fast EXTRA-style bursts driven by luma p99 ──
     strobe_last = 0
+    last_strobe_sec = -10
     for sec, p99 in data:
         if not in_strobe_zone(sec):
             continue
         base_dmx = p99_to_dmx(p99)
         if base_dmx < STROBE_ACTIVATE_DMX:
             continue
+        if sec - last_strobe_sec <= STROBE_MIN_GAP_SEC:
+            continue   # enforce a fully dark second between strobes
+        if rng.random() > STROBE_TRIGGER_PROB:
+            continue   # most qualifying seconds skipped — sparse strobe feel
+        last_strobe_sec = sec
         h, m, s = sec_to_hms(sec)
 
-        # Density: 1–3 micro-flashes per second, scaled by base_dmx
+        # Density: usually 1 flash, very rarely 2 or 3
         n = 1
-        if base_dmx >= 60 and rng.random() < STROBE_FLASH_PROB_2:
+        if base_dmx >= 90 and rng.random() < STROBE_FLASH_PROB_2:
             n = 2
-        if base_dmx >= 110 and rng.random() < STROBE_FLASH_PROB_3:
+        if base_dmx >= 130 and rng.random() < STROBE_FLASH_PROB_3:
             n = 3
 
         # Brightness target proportional to base_dmx, but inside the strobe range
