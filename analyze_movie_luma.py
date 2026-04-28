@@ -247,7 +247,7 @@ def main():
     COL_LUMA = "#f0d080"   # warm gold  — video luma
     COL_DMX  = "#4fc3f7"   # cool blue  — DMX arc
 
-    fig, ax = plt.subplots(figsize=(24, 8))
+    fig, ax = plt.subplots(figsize=(28, 9))
     fig.patch.set_facecolor(BG)
     ax.set_facecolor(AX)
 
@@ -314,10 +314,18 @@ def main():
         return f"{mn:02d}:{s:02d}"
 
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(fmt_mmss))
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(120))   # every 2 min
-    ax.xaxis.set_minor_locator(ticker.MultipleLocator(60))    # every 1 min
-    ax.grid(True,          color="#252525", linewidth=0.6, zorder=0)
-    ax.grid(True, which="minor", color="#1e1e1e", linewidth=0.3, zorder=0)
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(60))    # every 1 min  (labeled)
+    ax.xaxis.set_minor_locator(ticker.MultipleLocator(30))    # every 30 s   (tick only)
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(25))    # every 25 DMX (labeled)
+    ax.yaxis.set_minor_locator(ticker.MultipleLocator(5))     # every 5 DMX  (tick only)
+    # major grid — slightly brighter so 1-min lines are readable
+    ax.grid(True, which="major", color="#2d2d2d", linewidth=0.7, zorder=0)
+    # minor grid — very faint so it doesn't crowd the data
+    ax.grid(True, which="minor", color="#1f1f1f", linewidth=0.3, zorder=0)
+    ax.tick_params(axis="x", which="major", labelsize=8, rotation=45)
+    ax.tick_params(axis="x", which="minor", length=3, labelsize=0)
+    ax.tick_params(axis="y", which="major", labelsize=8)
+    ax.tick_params(axis="y", which="minor", length=3, labelsize=0)
 
     ax.legend(facecolor="#222222", edgecolor="#444444",
               labelcolor="#cccccc", fontsize=10, loc="upper left")
