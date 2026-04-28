@@ -91,6 +91,26 @@ EXTRA_GAP_FRAMES     = (1, 4)     # 33–133 ms between micro-flashes
 EXTRA_HOLD_FRAMES    = 1          # 33 ms hold
 EXTRA_FADE_MS        = (40, 110)  # ultra-short decay per flash
 
+# ── STROBE OVERRIDE ZONES ───────────────────────────────────────────────────
+# Inside these (start_sec, end_sec) windows the chaotic-fireworks generator is
+# replaced by ultra-fast EXTRA-style strobe bursts (33 ms hold, 40–110 ms decay,
+# brightness 100–230 jittered, 1–3 micro-flashes per active second). Density and
+# brightness still scale with the luma p99 of that second.
+STROBE_ZONES_SEC = [
+    (11*60 + 20, 17*60 + 40),    # 11:20 – 17:40 — match the snappy 2:20–7:40 feel
+]
+STROBE_ACTIVATE_DMX  = 25         # base_dmx threshold below which the strobe stays silent
+STROBE_DMX_MIN       = 100
+STROBE_DMX_MAX       = 230
+STROBE_FLASH_PROB_2  = 0.55       # chance of a 2nd flash when base ≥ 60
+STROBE_FLASH_PROB_3  = 0.30       # chance of a 3rd flash when base ≥ 110
+STROBE_GAP_FRAMES    = (1, 4)     # 33–133 ms between sub-flashes
+STROBE_HOLD_FRAMES   = 1
+STROBE_FADE_MS       = (40, 110)
+
+def in_strobe_zone(sec: int) -> bool:
+    return any(a <= sec <= b for a, b in STROBE_ZONES_SEC)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -216,6 +236,8 @@ def generate_cues(data):
     for sec, p99 in data:
         if not in_fire_zone(sec):
             continue
+        if in_strobe_zone(sec):
+            continue   # handled by the strobe pass below
         base_dmx = p99_to_dmx(p99)
         if base_dmx <= DELTA_THRESH:
             continue
@@ -282,6 +304,48 @@ def generate_cues(data):
             cues.append((rh, rm, rs, rf, fade, 0,
                          f"{mm}:{ss:02d} EXTRA flash#{i+1} rel ({fade}ms)"))
             cur_f += EXTRA_HOLD_FRAMES + rng.randint(EXTRA_GAP_FRAMES[0], EXTRA_GAP_FRAMES[1])
+
+    # ── STROBE-ZONE pass: ultra-fast EXTRA-style bursts driven by luma p99 ──
+    strobe_last = 0
+    for sec, p99 in data:
+        if not in_strobe_zone(sec):
+            continue
+        base_dmx = p99_to_dmx(p99)
+        if base_dmx < STROBE_ACTIVATE_DMX:
+            continue
+        h, m, s = sec_to_hms(sec)
+
+        # Density: 1–3 micro-flashes per second, scaled by base_dmx
+        n = 1
+        if base_dmx >= 60 and rng.random() < STROBE_FLASH_PROB_2:
+            n = 2
+        if base_dmx >= 110 and rng.random() < STROBE_FLASH_PROB_3:
+            n = 3
+
+        # Brightness target proportional to base_dmx, but inside the strobe range
+        bright_t = min(1.0, base_dmx / SABER_APEX)
+        b_centre = STROBE_DMX_MIN + bright_t * (STROBE_DMX_MAX - STROBE_DMX_MIN)
+
+        cur_f = rng.randint(0, 4)
+        for i in range(n):
+            # ±25 % jitter around centre, anti-repetition vs previous strobe flash
+            for _ in range(6):
+                v = int(round(b_centre * (1.0 + rng.uniform(-0.25, 0.25))))
+                v = max(STROBE_DMX_MIN, min(STROBE_DMX_MAX, v))
+                if abs(v - strobe_last) >= 20:
+                    break
+            strobe_last = v
+
+            ah, am, as_, af = normalise(h, m, s, cur_f)
+            cues.append((ah, am, as_, af, 0, v,
+                         f"{sec//60}:{sec%60:02d}+{cur_f}f STROBE att {v}"))
+            rh, rm, rs, rf = normalise(h, m, s, cur_f + STROBE_HOLD_FRAMES)
+            fade = rng.randint(STROBE_FADE_MS[0], STROBE_FADE_MS[1])
+            cues.append((rh, rm, rs, rf, fade, 0,
+                         f"{sec//60}:{sec%60:02d}+{cur_f+STROBE_HOLD_FRAMES}f STROBE rel ({fade}ms)"))
+            cur_f += STROBE_HOLD_FRAMES + rng.randint(STROBE_GAP_FRAMES[0], STROBE_GAP_FRAMES[1])
+            if cur_f > 26:
+                break
 
     # Hard black at end of composition
     cues.append((0, 31, 38, 0, 0, 0, "hard black at end"))
