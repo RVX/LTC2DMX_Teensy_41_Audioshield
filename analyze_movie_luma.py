@@ -322,7 +322,7 @@ def main():
     ax.grid(True, which="major", color="#2d2d2d", linewidth=0.6, zorder=0)
     # minor grid — very faint
     ax.grid(True, which="minor", color="#1f1f1f", linewidth=0.25, zorder=0)
-    ax.tick_params(axis="x", which="major", labelsize=9, rotation=60)
+    ax.tick_params(axis="x", which="major", labelsize=11, rotation=60)
     ax.tick_params(axis="x", which="minor", length=3,  labelsize=0)
     ax.tick_params(axis="y", which="major", labelsize=10)
     ax.tick_params(axis="y", which="minor", length=3,  labelsize=0)
