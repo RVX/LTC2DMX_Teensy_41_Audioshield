@@ -69,7 +69,12 @@ END_BLACK_TIME     = (0, 31, 38)  # final hard black
 # ── INJECTED DIP EVENTS ─────────────────────────────────────────────────────────
 # At each (mm, ss) timestamp the backlight does a fast pitch-down to 0 then
 # returns to whatever value it would otherwise be at that moment.
+# Each entry is (mm, ss) or (mm, ss, frame).
 DIP_EVENTS_MMSS = [
+    # Frame-precise dips
+    (3,14, 15),
+    (3,20, 10),
+    # Whole-second dips
     (5,22), (5,25), (5,36), (5,43), (5,51),
     (6, 1), (6, 3), (6, 4), (6, 9), (6,12), (6,18),
     (6,38), (6,55), (7,19),
@@ -83,6 +88,8 @@ DIP_EVENTS_MMSS = [
     (20,59),
     (23, 8), (23,22), (23,52),
     (24,36),
+    # Closing batch
+    (29, 9), (29,20), (29,27), (29,36),
 ]
 DIP_DOWN_MS         = 80          # snap-down fade duration
 DIP_HOLD_FRAMES     = 4           # ~133 ms of darkness
@@ -121,6 +128,8 @@ FLICKER_EVENTS = [
 FLICKER_RANGES = [
     (19,59, 20,15,  2, 20, 4,  9, 110),   # 19:59 – 20:15  very subtle 2–20
     (25,15, 25,28,  2,  8, 5, 12, 130),   # 25:15 – 25:28  very subtle 2–8
+    (27, 1, 27, 8,  2,  8, 5, 12, 130),   # 27:01 – 27:08  very subtle 2–8
+    (29,46, 29,49,  5, 40, 3,  6,  90),   # 29:46 – 29:49  subtle 5–40
 ]
 FLICKER_RANDOM_SEED = 7
 
@@ -221,19 +230,25 @@ def generate_cues(data):
         last_emit = dmx
 
     # ── INJECTED DIP EVENTS ───────────────────────────────────────────────────
-    for mm, ss in DIP_EVENTS_MMSS:
+    for ev in DIP_EVENTS_MMSS:
+        if len(ev) == 3:
+            mm, ss, ff = ev
+        else:
+            mm, ss = ev
+            ff = 0
         ev_sec = mm * 60 + ss
         if ev_sec not in yavg_sm_map:
             continue
         base_dmx = compute_oscillating_dmx(ev_sec, yavg_sm_map[ev_sec])
         h0, m0, s0 = sec_to_hms(ev_sec)
+        ah0, am0, as0, af0 = normalise(h0, m0, s0, ff)
         # Snap down to 0
-        cues.append((h0, m0, s0, 0, 0, DIP_DOWN_MS,
-                     f"{mm}:{ss:02d} DIP ↓ 0 ({DIP_DOWN_MS}ms)"))
+        cues.append((ah0, am0, as0, af0, 0, DIP_DOWN_MS,
+                     f"{mm}:{ss:02d}+{ff}f DIP ↓ 0 ({DIP_DOWN_MS}ms)"))
         # Hold dark briefly, then quick recover to base
-        rh2, rm2, rs2, rf2 = normalise(h0, m0, s0, DIP_HOLD_FRAMES)
+        rh2, rm2, rs2, rf2 = normalise(h0, m0, s0, ff + DIP_HOLD_FRAMES)
         cues.append((rh2, rm2, rs2, rf2, base_dmx, DIP_RECOVER_MS,
-                     f"{mm}:{ss:02d} DIP ↑ back to {base_dmx} ({DIP_RECOVER_MS}ms)"))
+                     f"{mm}:{ss:02d}+{ff+DIP_HOLD_FRAMES}f DIP ↑ back to {base_dmx} ({DIP_RECOVER_MS}ms)"))
 
     # ── INJECTED FLICKER EVENTS ─────────────────────────────────────────────────
     rng = random.Random(FLICKER_RANDOM_SEED)
