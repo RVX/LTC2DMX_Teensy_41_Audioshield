@@ -38,6 +38,7 @@ SABER2_CH         = 5
 SABER2_FLOOR      = 2        # minimum during body — light never fully off
 SABER2_BASE_CAP   = 15       # ceiling of the brightness-following base
 SABER2_HARD_CAP   = 50       # absolute max with chaos/breath added
+SABER2_BIAS       = 4        # constant uplift — adds +75% body brightness
 YAVG_BRIGHT_REF   = 110.0    # video luma above this → at BASE_CAP
 
 # Subtle oscillation so the corridor isn't a flat dimmer.
@@ -123,7 +124,7 @@ def compute_dmx(sec, yavg_sm):
     chaos_sum  = 0.6 * chaos_sum + 0.4 * _chaos_noise(sec)
     chaos = chaos_amp * chaos_sum
     return int(round(max(SABER2_FLOOR,
-                         min(SABER2_HARD_CAP, base + breath + wobble + chaos))))
+                         min(SABER2_HARD_CAP, base + SABER2_BIAS + breath + wobble + chaos))))
 
 
 def sec_to_hms(sec):
