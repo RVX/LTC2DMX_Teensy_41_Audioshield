@@ -35,24 +35,24 @@ OUTPUT_PATH  = os.path.join(PROJECT_ROOT, "src", "cues_saber_ww2.h")
 SABER2_CH         = 5
 
 # *** TWEAKABLE ENVELOPE *** (kept low — corridor must stay soft)
-SABER2_FLOOR      = 2        # minimum during body — light never fully off
-SABER2_BASE_CAP   = 15       # ceiling of the brightness-following base
-SABER2_HARD_CAP   = 50       # absolute max with chaos/breath added
-SABER2_BIAS       = 4        # constant uplift — adds +75% body brightness
+SABER2_FLOOR      = 6        # minimum during body — light never fully off
+SABER2_BASE_CAP   = 45       # ceiling of the brightness-following base
+SABER2_HARD_CAP   = 150      # absolute max with chaos/breath added
+SABER2_BIAS       = 12       # constant uplift — adds body brightness
 YAVG_BRIGHT_REF   = 110.0    # video luma above this → at BASE_CAP
 
 # Subtle oscillation so the corridor isn't a flat dimmer.
 # Amplitudes scale with brightness (the inverse of how ch2 scales).
 BREATH_PERIOD_SEC = 11.0     # slow, longer than ch2 so they feel decoupled
-BREATH_AMP_MAX    = 8        # ±8 DMX at full brightness
-BREATH_AMP_MIN    = 1
+BREATH_AMP_MAX    = 24       # ±24 DMX at full brightness (was 8)
+BREATH_AMP_MIN    = 3
 WOBBLE_PERIOD_SEC = 5.7
-WOBBLE_AMP_MAX    = 4
-WOBBLE_AMP_MIN    = 1
+WOBBLE_AMP_MAX    = 12       # was 4
+WOBBLE_AMP_MIN    = 3
 
 # Chaos layer (multi-sine) — tiny, just to shake off perfect periodicity.
-CHAOS_AMP_MAX     = 6
-CHAOS_AMP_MIN     = 1
+CHAOS_AMP_MAX     = 18       # was 6
+CHAOS_AMP_MIN     = 3
 CHAOS_PERIODS_SEC = (4.3, 9.1, 13.7)
 CHAOS_PHASES      = (1.1, 3.0, 5.2)
 CHAOS_NOISE_SEED  = 4242

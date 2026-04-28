@@ -71,14 +71,14 @@ All three follow-the-video channels are auto-generated. Edit the constants at th
 ### `gen_saber_ww2_cues.py` — ch5 corridor (NEW: slightly inversed to ch2)
 | Constant | Current | Effect |
 |---|---|---|
-| `SABER2_FLOOR` | 2 | minimum — corridor never fully off |
-| `SABER2_BASE_CAP` | **15** | ceiling of brightness-following base |
-| `SABER2_HARD_CAP` | **50** | absolute peak with breath/chaos |
-| `SABER2_BIAS` | **4** | constant uplift — adds body brightness without raising caps |
-| `BREATH_AMP_MAX / MIN` | 8 / 1 | breath swing |
+| `SABER2_FLOOR` | 6 | minimum — corridor never fully off |
+| `SABER2_BASE_CAP` | **45** | ceiling of brightness-following base |
+| `SABER2_HARD_CAP` | **150** | absolute peak with breath/chaos |
+| `SABER2_BIAS` | **12** | constant uplift — adds body brightness without raising caps |
+| `BREATH_AMP_MAX / MIN` | 24 / 3 | breath swing |
 | `BREATH_PERIOD_SEC` | 11.0 | slow, longer than ch2 → decoupled feel |
-| `WOBBLE_AMP_MAX / MIN` | 4 / 1 | jitter |
-| `CHAOS_AMP_MAX / MIN` | 6 / 1 | tiny erratic layer |
+| `WOBBLE_AMP_MAX / MIN` | 12 / 3 | jitter |
+| `CHAOS_AMP_MAX / MIN` | 18 / 3 | erratic layer |
 
 ### `gen_saber_cues.py` — ch7 envelope follower + strobe zones
 | Constant | Current | Effect |
