@@ -73,6 +73,23 @@ RANDOM_SEED         = 42
 DELTA_THRESH       = 3
 MIN_ATTACK_GAP_SEC = 0   # no per-second cooldown — sub-flashes drive density
 
+# ── EXTRA FLASH BURSTS ───────────────────────────────────────────────────────
+# Manually injected ultra-fast micro-bursts at specific timestamps.
+# Each entry triggers 4–6 super-quick flashes packed inside ~400ms,
+# random intensities in EXTRA_DMX_RANGE, very short decay (flash/strobe feel).
+# These run regardless of fire-zone membership.
+EXTRA_FLASH_MOMENTS_MMSS = [
+    (2,24), (3,11), (3,20), (3,30), (3,38), (3,52), (4, 2), (4,59),
+    (5, 7), (5,12), (5,22), (5,36), (5,43), (5,51),
+    (6, 1), (6, 3), (6, 4), (6,26), (6,55),
+]
+EXTRA_DMX_MIN        = 150
+EXTRA_DMX_MAX        = 255
+EXTRA_FLASH_COUNT    = (4, 6)     # min,max micro-flashes per burst
+EXTRA_GAP_FRAMES     = (1, 3)     # 33–100 ms between micro-flashes
+EXTRA_HOLD_FRAMES    = 1          # 33 ms hold
+EXTRA_FADE_MS        = (40, 90)   # ultra-short decay per flash
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -243,6 +260,28 @@ def generate_cues(data):
 
             last_brightness = dmx_f
 
+    # ── EXTRA injected flash bursts (manual fireworks moments) ──
+    extra_last = 0
+    for mm, ss in EXTRA_FLASH_MOMENTS_MMSS:
+        h0, m0, s0 = sec_to_hms(mm * 60 + ss)
+        n_flash = rng.randint(EXTRA_FLASH_COUNT[0], EXTRA_FLASH_COUNT[1])
+        cur_f = rng.randint(0, 2)
+        for i in range(n_flash):
+            # anti-repetition brightness in [EXTRA_DMX_MIN, EXTRA_DMX_MAX]
+            for _ in range(6):
+                v = rng.randint(EXTRA_DMX_MIN, EXTRA_DMX_MAX)
+                if abs(v - extra_last) >= 25:
+                    break
+            extra_last = v
+            ah, am, as_, af = normalise(h0, m0, s0, cur_f)
+            cues.append((ah, am, as_, af, 0, v,
+                         f"{mm}:{ss:02d} EXTRA flash#{i+1} att {v}"))
+            rh, rm, rs, rf = normalise(h0, m0, s0, cur_f + EXTRA_HOLD_FRAMES)
+            fade = rng.randint(EXTRA_FADE_MS[0], EXTRA_FADE_MS[1])
+            cues.append((rh, rm, rs, rf, fade, 0,
+                         f"{mm}:{ss:02d} EXTRA flash#{i+1} rel ({fade}ms)"))
+            cur_f += EXTRA_HOLD_FRAMES + rng.randint(EXTRA_GAP_FRAMES[0], EXTRA_GAP_FRAMES[1])
+
     # Hard black at end of composition
     cues.append((0, 31, 38, 0, 0, 0, "hard black at end"))
 
@@ -287,12 +326,15 @@ def write_header(cues, output_path: str):
             zone = "INIT"
         elif in_fire_zone(total_s):
             zone = "A" if total_s <= ZONE_A[1] else "B"
+        elif total_s < ZONE_A[0] and (dmx > 0 or fade > 0):
+            zone = "X"
         else:
             zone = "END"
 
         if zone != last_zone:
             labels = {
                 "INIT": "INIT — hard black",
+                "X":    "EXTRA INJECTED FLASH BURSTS (manual fireworks moments)",
                 "A":    f"FIRE ZONE A — {ZONE_A[0]//60}:{ZONE_A[0]%60:02d}–{ZONE_A[1]//60}:{ZONE_A[1]%60:02d}",
                 "B":    f"FIRE ZONE B — {ZONE_B[0]//60}:{ZONE_B[0]%60:02d}–{ZONE_B[1]//60}:{ZONE_B[1]%60:02d}",
                 "END":  "FADE OUT",

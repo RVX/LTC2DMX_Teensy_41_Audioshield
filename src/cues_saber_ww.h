@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED — do not edit by hand.
-// Generated: 2026-04-28 13:58 UTC  by gen_saber_cues.py
+// Generated: 2026-04-28 14:13 UTC  by gen_saber_cues.py
 // Source: controlled_burn_luma.csv  metric: yp99_raw
 //
 // ADJ Saber Spot WW — PER-SECOND PULSE MODEL on p99
@@ -29,17 +29,131 @@ static const DMXCue SABER_CUE_LIST[] = {
 
     {  0,  0,  0,  0,       0, W(  0) },   // hard black at start
     // ====================================================================
+    // EXTRA INJECTED FLASH BURSTS (manual fireworks moments)
+    // ====================================================================
+
+    {  0,  2, 24,  0,       0, W(161) },   // 2:24 EXTRA flash#1 att 161
+    {  0,  2, 24,  1,      53, W(  0) },   // 2:24 EXTRA flash#1 rel (53ms)
+    {  0,  2, 24,  2,       0, W(224) },   // 2:24 EXTRA flash#2 att 224
+    {  0,  2, 24,  3,      88, W(  0) },   // 2:24 EXTRA flash#2 rel (88ms)
+    {  0,  2, 24,  6,       0, W(253) },   // 2:24 EXTRA flash#3 att 253
+    {  0,  2, 24,  7,      40, W(  0) },   // 2:24 EXTRA flash#3 rel (40ms)
+    {  0,  2, 24,  8,       0, W(169) },   // 2:24 EXTRA flash#4 att 169
+    {  0,  2, 24,  9,      68, W(  0) },   // 2:24 EXTRA flash#4 rel (68ms)
+    {  0,  2, 24, 12,       0, W(199) },   // 2:24 EXTRA flash#5 att 199
+    {  0,  2, 24, 13,      79, W(  0) },   // 2:24 EXTRA flash#5 rel (79ms)
+    {  0,  2, 24, 16,       0, W(237) },   // 2:24 EXTRA flash#6 att 237
+    {  0,  2, 24, 17,      60, W(  0) },   // 2:24 EXTRA flash#6 rel (60ms)
+    {  0,  3, 11,  2,       0, W(188) },   // 3:11 EXTRA flash#1 att 188
+    {  0,  3, 11,  3,      67, W(  0) },   // 3:11 EXTRA flash#1 rel (67ms)
+    {  0,  3, 11,  6,       0, W(161) },   // 3:11 EXTRA flash#2 att 161
+    {  0,  3, 11,  7,      77, W(  0) },   // 3:11 EXTRA flash#2 rel (77ms)
+    {  0,  3, 11,  8,       0, W(228) },   // 3:11 EXTRA flash#3 att 228
+    {  0,  3, 11,  9,      72, W(  0) },   // 3:11 EXTRA flash#3 rel (72ms)
+    {  0,  3, 11, 11,       0, W(166) },   // 3:11 EXTRA flash#4 att 166
+    {  0,  3, 11, 12,      58, W(  0) },   // 3:11 EXTRA flash#4 rel (58ms)
+    {  0,  3, 11, 13,       0, W(197) },   // 3:11 EXTRA flash#5 att 197
+    {  0,  3, 11, 14,      75, W(  0) },   // 3:11 EXTRA flash#5 rel (75ms)
+    {  0,  3, 11, 15,       0, W(150) },   // 3:11 EXTRA flash#6 att 150
+    {  0,  3, 11, 16,      85, W(  0) },   // 3:11 EXTRA flash#6 rel (85ms)
+    {  0,  3, 20,  0,       0, W(186) },   // 3:20 EXTRA flash#1 att 186
+    {  0,  3, 20,  1,      41, W(  0) },   // 3:20 EXTRA flash#1 rel (41ms)
+    {  0,  3, 20,  2,       0, W(239) },   // 3:20 EXTRA flash#2 att 239
+    {  0,  3, 20,  3,      77, W(  0) },   // 3:20 EXTRA flash#2 rel (77ms)
+    {  0,  3, 20,  5,       0, W(190) },   // 3:20 EXTRA flash#3 att 190
+    {  0,  3, 20,  6,      85, W(  0) },   // 3:20 EXTRA flash#3 rel (85ms)
+    {  0,  3, 20,  8,       0, W(219) },   // 3:20 EXTRA flash#4 att 219
+    {  0,  3, 20,  9,      53, W(  0) },   // 3:20 EXTRA flash#4 rel (53ms)
+    {  0,  3, 20, 12,       0, W(172) },   // 3:20 EXTRA flash#5 att 172
+    {  0,  3, 20, 13,      70, W(  0) },   // 3:20 EXTRA flash#5 rel (70ms)
+    {  0,  3, 30,  2,       0, W(199) },   // 3:30 EXTRA flash#1 att 199
+    {  0,  3, 30,  3,      63, W(  0) },   // 3:30 EXTRA flash#1 rel (63ms)
+    {  0,  3, 30,  5,       0, W(169) },   // 3:30 EXTRA flash#2 att 169
+    {  0,  3, 30,  6,      58, W(  0) },   // 3:30 EXTRA flash#2 rel (58ms)
+    {  0,  3, 30,  9,       0, W(232) },   // 3:30 EXTRA flash#3 att 232
+    {  0,  3, 30, 10,      41, W(  0) },   // 3:30 EXTRA flash#3 rel (41ms)
+    {  0,  3, 30, 11,       0, W(205) },   // 3:30 EXTRA flash#4 att 205
+    {  0,  3, 30, 12,      48, W(  0) },   // 3:30 EXTRA flash#4 rel (48ms)
+    {  0,  3, 38,  2,       0, W(253) },   // 3:38 EXTRA flash#1 att 253
+    {  0,  3, 38,  3,      66, W(  0) },   // 3:38 EXTRA flash#1 rel (66ms)
+    {  0,  3, 38,  5,       0, W(227) },   // 3:38 EXTRA flash#2 att 227
+    {  0,  3, 38,  6,      67, W(  0) },   // 3:38 EXTRA flash#2 rel (67ms)
+    {  0,  3, 38,  9,       0, W(173) },   // 3:38 EXTRA flash#3 att 173
+    {  0,  3, 38, 10,      69, W(  0) },   // 3:38 EXTRA flash#3 rel (69ms)
+    {  0,  3, 38, 13,       0, W(204) },   // 3:38 EXTRA flash#4 att 204
+    {  0,  3, 38, 14,      75, W(  0) },   // 3:38 EXTRA flash#4 rel (75ms)
+    {  0,  3, 52,  1,       0, W(178) },   // 3:52 EXTRA flash#1 att 178
+    {  0,  3, 52,  2,      51, W(  0) },   // 3:52 EXTRA flash#1 rel (51ms)
+    {  0,  3, 52,  4,       0, W(227) },   // 3:52 EXTRA flash#2 att 227
+    {  0,  3, 52,  5,      40, W(  0) },   // 3:52 EXTRA flash#2 rel (40ms)
+    {  0,  3, 52,  8,       0, W(180) },   // 3:52 EXTRA flash#3 att 180
+    {  0,  3, 52,  9,      85, W(  0) },   // 3:52 EXTRA flash#3 rel (85ms)
+    {  0,  3, 52, 12,       0, W(219) },   // 3:52 EXTRA flash#4 att 219
+    {  0,  3, 52, 13,      76, W(  0) },   // 3:52 EXTRA flash#4 rel (76ms)
+    {  0,  3, 52, 15,       0, W(154) },   // 3:52 EXTRA flash#5 att 154
+    {  0,  3, 52, 16,      42, W(  0) },   // 3:52 EXTRA flash#5 rel (42ms)
+    {  0,  4,  2,  2,       0, W(197) },   // 4:02 EXTRA flash#1 att 197
+    {  0,  4,  2,  3,      47, W(  0) },   // 4:02 EXTRA flash#1 rel (47ms)
+    {  0,  4,  2,  6,       0, W(238) },   // 4:02 EXTRA flash#2 att 238
+    {  0,  4,  2,  7,      45, W(  0) },   // 4:02 EXTRA flash#2 rel (45ms)
+    {  0,  4,  2,  8,       0, W(185) },   // 4:02 EXTRA flash#3 att 185
+    {  0,  4,  2,  9,      69, W(  0) },   // 4:02 EXTRA flash#3 rel (69ms)
+    {  0,  4,  2, 12,       0, W(160) },   // 4:02 EXTRA flash#4 att 160
+    {  0,  4,  2, 13,      73, W(  0) },   // 4:02 EXTRA flash#4 rel (73ms)
+    {  0,  4,  2, 16,       0, W(210) },   // 4:02 EXTRA flash#5 att 210
+    {  0,  4,  2, 17,      80, W(  0) },   // 4:02 EXTRA flash#5 rel (80ms)
+    {  0,  4, 59,  2,       0, W(159) },   // 4:59 EXTRA flash#1 att 159
+    {  0,  4, 59,  3,      83, W(  0) },   // 4:59 EXTRA flash#1 rel (83ms)
+    {  0,  4, 59,  6,       0, W(219) },   // 4:59 EXTRA flash#2 att 219
+    {  0,  4, 59,  7,      77, W(  0) },   // 4:59 EXTRA flash#2 rel (77ms)
+    {  0,  4, 59,  9,       0, W(156) },   // 4:59 EXTRA flash#3 att 156
+    {  0,  4, 59, 10,      61, W(  0) },   // 4:59 EXTRA flash#3 rel (61ms)
+    {  0,  4, 59, 13,       0, W(249) },   // 4:59 EXTRA flash#4 att 249
+    {  0,  4, 59, 14,      40, W(  0) },   // 4:59 EXTRA flash#4 rel (40ms)
+    {  0,  4, 59, 16,       0, W(208) },   // 4:59 EXTRA flash#5 att 208
+    {  0,  4, 59, 17,      72, W(  0) },   // 4:59 EXTRA flash#5 rel (72ms)
+    {  0,  4, 59, 19,       0, W(243) },   // 4:59 EXTRA flash#6 att 243
+    {  0,  4, 59, 20,      61, W(  0) },   // 4:59 EXTRA flash#6 rel (61ms)
+    {  0,  5,  7,  1,       0, W(187) },   // 5:07 EXTRA flash#1 att 187
+    {  0,  5,  7,  2,      50, W(  0) },   // 5:07 EXTRA flash#1 rel (50ms)
+    {  0,  5,  7,  3,       0, W(238) },   // 5:07 EXTRA flash#2 att 238
+    {  0,  5,  7,  4,      78, W(  0) },   // 5:07 EXTRA flash#2 rel (78ms)
+    {  0,  5,  7,  7,       0, W(188) },   // 5:07 EXTRA flash#3 att 188
+    {  0,  5,  7,  8,      86, W(  0) },   // 5:07 EXTRA flash#3 rel (86ms)
+    {  0,  5,  7, 11,       0, W(157) },   // 5:07 EXTRA flash#4 att 157
+    {  0,  5,  7, 12,      80, W(  0) },   // 5:07 EXTRA flash#4 rel (80ms)
+    {  0,  5,  7, 14,       0, W(224) },   // 5:07 EXTRA flash#5 att 224
+    {  0,  5,  7, 15,      50, W(  0) },   // 5:07 EXTRA flash#5 rel (50ms)
+    // ====================================================================
     // FIRE ZONE A — 5:08–21:55
     // ====================================================================
 
+    {  0,  5, 12,  2,       0, W(187) },   // 5:12 EXTRA flash#1 att 187
+    {  0,  5, 12,  3,      87, W(  0) },   // 5:12 EXTRA flash#1 rel (87ms)
+    {  0,  5, 12,  6,       0, W(153) },   // 5:12 EXTRA flash#2 att 153
+    {  0,  5, 12,  7,      58, W(  0) },   // 5:12 EXTRA flash#2 rel (58ms)
+    {  0,  5, 12,  9,       0, W(214) },   // 5:12 EXTRA flash#3 att 214
+    {  0,  5, 12, 10,      44, W(  0) },   // 5:12 EXTRA flash#3 rel (44ms)
+    {  0,  5, 12, 12,       0, W(182) },   // 5:12 EXTRA flash#4 att 182
+    {  0,  5, 12, 13,      48, W(  0) },   // 5:12 EXTRA flash#4 rel (48ms)
     {  0,  5, 13,  2,       0, W(160) },   // 5:13+2f FAST att 160
     {  0,  5, 13,  4,     106, W(  0) },   // 5:13+4f rel 160 0 (106ms,FAST)
     {  0,  5, 13, 10,       0, W(106) },   // 5:13+10f SHARP att 106
     {  0,  5, 13, 11,      42, W(  0) },   // 5:13+11f rel 106 0 (42ms,SHARP)
     {  0,  5, 13, 18,       0, W(148) },   // 5:13+18f FAST att 148
     {  0,  5, 13, 19,      98, W(  0) },   // 5:13+19f rel 148 0 (98ms,FAST)
+    {  0,  5, 22,  1,       0, W(151) },   // 5:22 EXTRA flash#1 att 151
+    {  0,  5, 22,  2,      87, W(  0) },   // 5:22 EXTRA flash#1 rel (87ms)
+    {  0,  5, 22,  3,       0, W(227) },   // 5:22 EXTRA flash#2 att 227
+    {  0,  5, 22,  4,      51, W(  0) },   // 5:22 EXTRA flash#2 rel (51ms)
     {  0,  5, 22,  5,       0, W(  4) },   // 5:22+5f FAST att 4
     {  0,  5, 22,  6,      20, W(  0) },   // 5:22+6f rel 4 0 (20ms,FAST)
+    {  0,  5, 22,  7,       0, W(169) },   // 5:22 EXTRA flash#3 att 169
+    {  0,  5, 22,  8,      82, W(  0) },   // 5:22 EXTRA flash#3 rel (82ms)
+    {  0,  5, 22, 10,       0, W(197) },   // 5:22 EXTRA flash#4 att 197
+    {  0,  5, 22, 11,      51, W(  0) },   // 5:22 EXTRA flash#4 rel (51ms)
+    {  0,  5, 22, 13,       0, W(250) },   // 5:22 EXTRA flash#5 att 250
+    {  0,  5, 22, 14,      84, W(  0) },   // 5:22 EXTRA flash#5 rel (84ms)
     {  0,  5, 30,  6,       0, W(135) },   // 5:30+6f SOFT att 135
     {  0,  5, 30,  7,     150, W(  0) },   // 5:30+7f rel 135 0 (150ms,SOFT)
     {  0,  5, 30, 13,       0, W(160) },   // 5:30+13f SHARP att 160
@@ -50,12 +164,74 @@ static const DMXCue SABER_CUE_LIST[] = {
     {  0,  5, 34,  5,      20, W(  0) },   // 5:34+5f rel 4 0 (20ms,FAST)
     {  0,  5, 35,  6,       0, W( 37) },   // 5:35+6f SHARP att 37
     {  0,  5, 35,  8,      20, W(  0) },   // 5:35+8f rel 37 0 (20ms,SHARP)
+    {  0,  5, 36,  0,       0, W(217) },   // 5:36 EXTRA flash#1 att 217
+    {  0,  5, 36,  1,      42, W(  0) },   // 5:36 EXTRA flash#1 rel (42ms)
+    {  0,  5, 36,  3,       0, W(160) },   // 5:36 EXTRA flash#2 att 160
+    {  0,  5, 36,  4,      49, W(  0) },   // 5:36 EXTRA flash#2 rel (49ms)
+    {  0,  5, 36,  7,       0, W(255) },   // 5:36 EXTRA flash#3 att 255
+    {  0,  5, 36,  8,      49, W(  0) },   // 5:36 EXTRA flash#3 rel (49ms)
+    {  0,  5, 36, 10,       0, W(202) },   // 5:36 EXTRA flash#4 att 202
+    {  0,  5, 36, 11,      89, W(  0) },   // 5:36 EXTRA flash#4 rel (89ms)
+    {  0,  5, 36, 13,       0, W(234) },   // 5:36 EXTRA flash#5 att 234
+    {  0,  5, 36, 14,      68, W(  0) },   // 5:36 EXTRA flash#5 rel (68ms)
     {  0,  5, 42,  5,       0, W(  7) },   // 5:42+5f SOFT att 7
     {  0,  5, 42,  6,      20, W(  0) },   // 5:42+6f rel 7 0 (20ms,SOFT)
+    {  0,  5, 43,  0,       0, W(176) },   // 5:43 EXTRA flash#1 att 176
+    {  0,  5, 43,  1,      76, W(  0) },   // 5:43 EXTRA flash#1 rel (76ms)
+    {  0,  5, 43,  4,       0, W(232) },   // 5:43 EXTRA flash#2 att 232
+    {  0,  5, 43,  5,      56, W(  0) },   // 5:43 EXTRA flash#2 rel (56ms)
+    {  0,  5, 43,  6,       0, W(156) },   // 5:43 EXTRA flash#3 att 156
+    {  0,  5, 43,  7,      50, W(  0) },   // 5:43 EXTRA flash#3 rel (50ms)
+    {  0,  5, 43,  9,       0, W(201) },   // 5:43 EXTRA flash#4 att 201
+    {  0,  5, 43, 10,      70, W(  0) },   // 5:43 EXTRA flash#4 rel (70ms)
+    {  0,  5, 43, 12,       0, W(245) },   // 5:43 EXTRA flash#5 att 245
+    {  0,  5, 43, 13,      88, W(  0) },   // 5:43 EXTRA flash#5 rel (88ms)
+    {  0,  5, 43, 16,       0, W(179) },   // 5:43 EXTRA flash#6 att 179
+    {  0,  5, 43, 17,      64, W(  0) },   // 5:43 EXTRA flash#6 rel (64ms)
     {  0,  5, 49,  6,       0, W( 29) },   // 5:49+6f FAST att 29
     {  0,  5, 49,  7,      20, W(  0) },   // 5:49+7f rel 29 0 (20ms,FAST)
     {  0,  5, 50,  1,       0, W( 10) },   // 5:50+1f SHARP att 10
     {  0,  5, 50,  3,      20, W(  0) },   // 5:50+3f rel 10 0 (20ms,SHARP)
+    {  0,  5, 51,  1,       0, W(210) },   // 5:51 EXTRA flash#1 att 210
+    {  0,  5, 51,  2,      56, W(  0) },   // 5:51 EXTRA flash#1 rel (56ms)
+    {  0,  5, 51,  3,       0, W(151) },   // 5:51 EXTRA flash#2 att 151
+    {  0,  5, 51,  4,      58, W(  0) },   // 5:51 EXTRA flash#2 rel (58ms)
+    {  0,  5, 51,  6,       0, W(198) },   // 5:51 EXTRA flash#3 att 198
+    {  0,  5, 51,  7,      83, W(  0) },   // 5:51 EXTRA flash#3 rel (83ms)
+    {  0,  5, 51,  9,       0, W(237) },   // 5:51 EXTRA flash#4 att 237
+    {  0,  5, 51, 10,      42, W(  0) },   // 5:51 EXTRA flash#4 rel (42ms)
+    {  0,  5, 51, 11,       0, W(195) },   // 5:51 EXTRA flash#5 att 195
+    {  0,  5, 51, 12,      67, W(  0) },   // 5:51 EXTRA flash#5 rel (67ms)
+    {  0,  5, 51, 15,       0, W(233) },   // 5:51 EXTRA flash#6 att 233
+    {  0,  5, 51, 16,      57, W(  0) },   // 5:51 EXTRA flash#6 rel (57ms)
+    {  0,  6,  1,  1,       0, W(162) },   // 6:01 EXTRA flash#1 att 162
+    {  0,  6,  1,  2,      56, W(  0) },   // 6:01 EXTRA flash#1 rel (56ms)
+    {  0,  6,  1,  5,       0, W(224) },   // 6:01 EXTRA flash#2 att 224
+    {  0,  6,  1,  6,      65, W(  0) },   // 6:01 EXTRA flash#2 rel (65ms)
+    {  0,  6,  1,  8,       0, W(180) },   // 6:01 EXTRA flash#3 att 180
+    {  0,  6,  1,  9,      86, W(  0) },   // 6:01 EXTRA flash#3 rel (86ms)
+    {  0,  6,  1, 12,       0, W(225) },   // 6:01 EXTRA flash#4 att 225
+    {  0,  6,  1, 13,      89, W(  0) },   // 6:01 EXTRA flash#4 rel (89ms)
+    {  0,  6,  1, 14,       0, W(193) },   // 6:01 EXTRA flash#5 att 193
+    {  0,  6,  1, 15,      83, W(  0) },   // 6:01 EXTRA flash#5 rel (83ms)
+    {  0,  6,  3,  1,       0, W(220) },   // 6:03 EXTRA flash#1 att 220
+    {  0,  6,  3,  2,      40, W(  0) },   // 6:03 EXTRA flash#1 rel (40ms)
+    {  0,  6,  3,  5,       0, W(151) },   // 6:03 EXTRA flash#2 att 151
+    {  0,  6,  3,  6,      44, W(  0) },   // 6:03 EXTRA flash#2 rel (44ms)
+    {  0,  6,  3,  7,       0, W(202) },   // 6:03 EXTRA flash#3 att 202
+    {  0,  6,  3,  8,      46, W(  0) },   // 6:03 EXTRA flash#3 rel (46ms)
+    {  0,  6,  3, 11,       0, W(163) },   // 6:03 EXTRA flash#4 att 163
+    {  0,  6,  3, 12,      83, W(  0) },   // 6:03 EXTRA flash#4 rel (83ms)
+    {  0,  6,  4,  0,       0, W(242) },   // 6:04 EXTRA flash#1 att 242
+    {  0,  6,  4,  1,      58, W(  0) },   // 6:04 EXTRA flash#1 rel (58ms)
+    {  0,  6,  4,  3,       0, W(174) },   // 6:04 EXTRA flash#2 att 174
+    {  0,  6,  4,  4,      42, W(  0) },   // 6:04 EXTRA flash#2 rel (42ms)
+    {  0,  6,  4,  5,       0, W(229) },   // 6:04 EXTRA flash#3 att 229
+    {  0,  6,  4,  6,      45, W(  0) },   // 6:04 EXTRA flash#3 rel (45ms)
+    {  0,  6,  4,  7,       0, W(177) },   // 6:04 EXTRA flash#4 att 177
+    {  0,  6,  4,  8,      78, W(  0) },   // 6:04 EXTRA flash#4 rel (78ms)
+    {  0,  6,  4, 11,       0, W(240) },   // 6:04 EXTRA flash#5 att 240
+    {  0,  6,  4, 12,      47, W(  0) },   // 6:04 EXTRA flash#5 rel (47ms)
     {  0,  6,  5,  1,       0, W( 74) },   // 6:05+1f FAST att 74
     {  0,  6,  5,  3,      49, W(  0) },   // 6:05+3f rel 74 0 (49ms,FAST)
     {  0,  6, 16,  6,       0, W(142) },   // 6:16+6f SHARP att 142
@@ -66,6 +242,18 @@ static const DMXCue SABER_CUE_LIST[] = {
     {  0,  6, 16, 20,     145, W(  0) },   // 6:16+20f rel 131 0 (145ms,SOFT)
     {  0,  6, 17,  5,       0, W(  6) },   // 6:17+5f SHARP att 6
     {  0,  6, 17,  6,      20, W(  0) },   // 6:17+6f rel 6 0 (20ms,SHARP)
+    {  0,  6, 26,  0,       0, W(198) },   // 6:26 EXTRA flash#1 att 198
+    {  0,  6, 26,  1,      82, W(  0) },   // 6:26 EXTRA flash#1 rel (82ms)
+    {  0,  6, 26,  4,       0, W(252) },   // 6:26 EXTRA flash#2 att 252
+    {  0,  6, 26,  5,      51, W(  0) },   // 6:26 EXTRA flash#2 rel (51ms)
+    {  0,  6, 26,  6,       0, W(173) },   // 6:26 EXTRA flash#3 att 173
+    {  0,  6, 26,  7,      56, W(  0) },   // 6:26 EXTRA flash#3 rel (56ms)
+    {  0,  6, 26,  9,       0, W(209) },   // 6:26 EXTRA flash#4 att 209
+    {  0,  6, 26, 10,      82, W(  0) },   // 6:26 EXTRA flash#4 rel (82ms)
+    {  0,  6, 26, 11,       0, W(248) },   // 6:26 EXTRA flash#5 att 248
+    {  0,  6, 26, 12,      67, W(  0) },   // 6:26 EXTRA flash#5 rel (67ms)
+    {  0,  6, 26, 15,       0, W(191) },   // 6:26 EXTRA flash#6 att 191
+    {  0,  6, 26, 16,      56, W(  0) },   // 6:26 EXTRA flash#6 rel (56ms)
     {  0,  6, 28,  4,       0, W( 32) },   // 6:28+4f SHARP att 32
     {  0,  6, 28,  5,      20, W(  0) },   // 6:28+5f rel 32 0 (20ms,SHARP)
     {  0,  6, 29,  0,       0, W(  8) },   // 6:29+0f SOFT att 8
@@ -102,6 +290,14 @@ static const DMXCue SABER_CUE_LIST[] = {
     {  0,  6, 47, 18,      86, W(  0) },   // 6:47+18f rel 130 0 (86ms,FAST)
     {  0,  6, 47, 25,       0, W(107) },   // 6:47+25f FAST att 107
     {  0,  6, 47, 26,      71, W(  0) },   // 6:47+26f rel 107 0 (71ms,FAST)
+    {  0,  6, 55,  1,       0, W(249) },   // 6:55 EXTRA flash#1 att 249
+    {  0,  6, 55,  2,      43, W(  0) },   // 6:55 EXTRA flash#1 rel (43ms)
+    {  0,  6, 55,  4,       0, W(199) },   // 6:55 EXTRA flash#2 att 199
+    {  0,  6, 55,  5,      61, W(  0) },   // 6:55 EXTRA flash#2 rel (61ms)
+    {  0,  6, 55,  6,       0, W(254) },   // 6:55 EXTRA flash#3 att 254
+    {  0,  6, 55,  7,      56, W(  0) },   // 6:55 EXTRA flash#3 rel (56ms)
+    {  0,  6, 55,  8,       0, W(206) },   // 6:55 EXTRA flash#4 att 206
+    {  0,  6, 55,  9,      44, W(  0) },   // 6:55 EXTRA flash#4 rel (44ms)
     {  0,  7,  0,  4,       0, W( 20) },   // 7:00+4f SOFT att 20
     {  0,  7,  0,  5,      22, W(  0) },   // 7:00+5f rel 20 0 (22ms,SOFT)
     {  0,  7,  1,  0,       0, W( 87) },   // 7:01+0f SOFT att 87
