@@ -38,15 +38,16 @@ P99_FLOOR = 30    # p99 below this → DMX 2 (ember floor glow)
 #   Zone A: 5:08–21:55  (308–1315 s)
 #   Zone B: 24:34–30:24 (1474–1824 s)
 ZONE_A = (308, 1315)
-ZONE_B = (1474, 1824)
+ZONE_B = (1474, 1828)   # extended to 30:28 so release is generated naturally
 
 # ── Envelope follower parameters ─────────────────────────────────────────────
 # Attack: instant — lamp snaps to every p99 peak immediately (0 ms fade).
 # Release: linear decay at RELEASE_RATE DMX units per second.
-#   RELEASE_RATE = 80  →  255→0 in ~3.2 s  (snappy, stays within burst gaps)
-#   RELEASE_RATE = 50  →  255→0 in ~5.1 s  (longer warm glow between bursts)
+#   RELEASE_RATE = 150 →  255→0 in ~1.7 s  (fast flash-and-decay, follows fire rhythm)
+#   RELEASE_RATE = 80  →  255→0 in ~3.2 s  (slow afterglow)
+#   RELEASE_RATE = 50  →  255→0 in ~5.1 s  (long warm glow)
 ATTACK_MS    = 0    # ms — instant snap on rising edge
-RELEASE_RATE = 80   # DMX units / second — linear decay on falling edge
+RELEASE_RATE = 150  # DMX units / second — linear decay on falling edge
 
 # ── Cue filter ────────────────────────────────────────────────────────────────
 DELTA_THRESH  = 3    # minimum DMX change to emit a new cue

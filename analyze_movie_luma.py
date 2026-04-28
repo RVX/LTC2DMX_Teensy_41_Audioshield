@@ -382,10 +382,10 @@ def main():
         extra_arc  = simulate_dmx_arc(extra_cues, TOTAL_SEC)
         ec = extra["color"]
         el = extra["label"]
-        ax.fill_between(list(range(TOTAL_SEC + 1)), extra_arc, alpha=0.08, color=ec)
+        ax.fill_between(list(range(TOTAL_SEC + 1)), extra_arc, alpha=0.14, color=ec)
         ax.plot(list(range(TOTAL_SEC + 1)), extra_arc,
-                color=ec, linewidth=1.2, linestyle="--",
-                label=el, zorder=4)
+                color=ec, linewidth=2.0, linestyle="--",
+                label=el, zorder=5)
         print(f"Extra arc: {el}  ({len(extra_cues)} cues)")
 
     # Film brightest moment marker (based on p95, not mean)
