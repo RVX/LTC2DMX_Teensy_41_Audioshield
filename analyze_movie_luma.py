@@ -157,48 +157,56 @@ def parse_cues_w(cues_h_path, framerate, macro="W"):
     return sorted(cues, key=lambda c: c[0])
 
 
-def simulate_dmx_arc(cues, total_sec):
+def simulate_dmx_arc(cues, total_sec, sub_steps=50):
     """
     Simulate the DMX master channel value at each integer second.
-    Each cue linearly fades FROM the value at trigger time TO the target
-    over fade_ms milliseconds.
+
+    For each integer second, samples `sub_steps` sub-positions (default 50,
+    every 20 ms) and stores the PEAK value reached during that second. This
+    correctly visualises short flash events: a 150 ms pulse shows as a
+    spike instead of vanishing because mid-second sampling fell into the
+    dark gap after the flash.
     """
     arc = [0.0] * (total_sec + 1)
+    if not cues:
+        return arc
 
-    # running state: value & fade in progress at start of each cue
-    run_val    = 0.0
-    run_start  = 0.0
-    run_target = 0.0
-    run_fade   = 0.0     # seconds
+    def val_at(t, sv, t0, tgt, fs):
+        if fs <= 0:
+            return tgt
+        elapsed = t - t0
+        if elapsed <= 0:
+            return sv
+        return sv + (tgt - sv) * min(1.0, elapsed / fs)
 
-    def val_at(t):
-        elapsed = t - run_start
-        if run_fade <= 0:
-            return run_target
-        return run_val + (run_target - run_val) * min(1.0, elapsed / run_fade)
+    # Pre-compute (trigger, start_val, target, fade_sec) per cue,
+    # carrying the running state forward.
+    segs = []
+    run_val = 0.0
+    run_start = 0.0
+    run_tgt = 0.0
+    run_fade = 0.0
+    for trigger, target, fade_ms in cues:
+        start_val = val_at(trigger, run_val, run_start, run_tgt, run_fade)
+        fade_sec = fade_ms / 1000.0
+        segs.append((trigger, start_val, float(target), fade_sec))
+        run_val = start_val
+        run_start = trigger
+        run_tgt = float(target)
+        run_fade = fade_sec
 
-    for i, (trigger, target, fade_ms) in enumerate(cues):
-        start_val  = val_at(trigger)
-        fade_sec   = fade_ms / 1000.0
-        next_trig  = cues[i + 1][0] if i + 1 < len(cues) else float(total_sec)
-
-        lo = max(0, int(trigger))
-        hi = min(total_sec, int(next_trig))
-        for sec in range(lo, hi + 1):
-            # Sample at midpoint of the second so a 100ms fade correctly
-            # shows the target value at the trigger second, not 1s later.
-            elapsed = (sec + 0.5) - trigger
-            if fade_sec > 0:
-                arc[sec] = start_val + (target - start_val) * min(1.0, elapsed / fade_sec)
-            else:
-                arc[sec] = target
-
-        # Advance running state for the next iteration
-        run_val    = start_val
-        run_start  = trigger
-        run_target = target
-        run_fade   = fade_sec
-
+    seg_idx = 0
+    for sec in range(total_sec + 1):
+        peak = 0.0
+        for k in range(sub_steps):
+            t = sec + k / sub_steps
+            while seg_idx + 1 < len(segs) and segs[seg_idx + 1][0] <= t:
+                seg_idx += 1
+            trig, sv, tgt, fs = segs[seg_idx]
+            v = val_at(t, sv, trig, tgt, fs)
+            if v > peak:
+                peak = v
+        arc[sec] = peak
     return arc
 
 

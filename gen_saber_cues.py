@@ -18,6 +18,7 @@ Envelope follower model
 
 import csv
 import os
+import random
 import sys
 from datetime import datetime
 
@@ -50,15 +51,17 @@ ZONE_B = (1474, 1828)   # extended to 30:28 so release is generated naturally
 #
 # Release fade duration = dmx / RELEASE_RATE * 1000 ms
 #   RELEASE_RATE = 150  → 255→0 in ~1.7 s
-RELEASE_RATE        = 500   # DMX units / second — fast flash decay (160→0 in ~320 ms)
-HOLD_FRAMES_NORMAL  = 3     # frames before release starts (~100 ms hold)
-HOLD_FRAMES_BURST   = 2     # frames before release starts (~67 ms hold)
-BURST_THRESH_DMX    = 120   # DMX value above which burst hold is used (adjusted for new apex)
+RELEASE_RATE        = 1500  # DMX units / second — explosion snap (160→0 in ~107 ms)
+HOLD_FRAMES_NORMAL  = 1     # ~33 ms hold before release — single-frame flash
+HOLD_FRAMES_BURST   = 1     # same: every flash is sharp, no soft pulses
+BURST_THRESH_DMX    = 120   # DMX value above which burst hold is used
+JITTER_MAX_FRAMES   = 25    # random 0–25 frame offset (0–833 ms within the second)
+                            # — breaks the on-the-beat rhythm, makes flashes unpredictable
+RANDOM_SEED         = 42    # deterministic chaos: same seed = same jitter pattern
 
-# ── Cue filter ────────────────────────────────────────────────────────────────
+# ── Cue filter ─────────────────────────────────────────────────────────────────────
 DELTA_THRESH       = 3    # minimum DMX value to emit a cue (ignore noise near 0)
-MIN_ATTACK_GAP_SEC = 3   # min seconds between attacks (cooldown); ensures fade
-                          # fully completes before next snap (hold + fade < gap)
+MIN_ATTACK_GAP_SEC = 1    # min seconds between attacks — fast follow, no muffling
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -155,6 +158,7 @@ def generate_cues(data):
     cues.append((0, 0, 0, 0, 0, 0, "hard black at start"))
 
     last_attack_sec = -999  # tracks cooldown
+    rng = random.Random(RANDOM_SEED)
 
     for sec, p99 in data:
         if not in_fire_zone(sec):
@@ -170,12 +174,26 @@ def generate_cues(data):
         fade_ms  = int(dmx / RELEASE_RATE * 1000)
         mode_tag = "BURST" if dmx >= BURST_THRESH_DMX else "pulse"
 
-        # 1. Instant attack at start of second
-        cues.append((h, m, s, 0, 0, dmx,
-                     f"{sec//60}:{sec%60:02d} {mode_tag} attack\u2192{dmx}"))
-        # 2. Forced release after hold
-        cues.append((h, m, s, hold_f, fade_ms, 0,
-                     f"{sec//60}:{sec%60:02d}+{hold_f}f release {dmx}\u21920 ({dmx/RELEASE_RATE:.1f}s)"))
+        # Random sub-second offset so flashes do not land on the beat.
+        offset_f = rng.randint(0, JITTER_MAX_FRAMES)
+
+        # 1. Instant attack at jittered frame
+        cues.append((h, m, s, offset_f, 0, dmx,
+                     f"{sec//60}:{sec%60:02d}+{offset_f}f {mode_tag} att {dmx}"))
+
+        # 2. Release immediately after short hold; normalise if past sec.
+        rh, rm, rs, rfr = h, m, s, offset_f + hold_f
+        if rfr >= 30:
+            rs += rfr // 30
+            rfr = rfr % 30
+            if rs >= 60:
+                rm += rs // 60
+                rs = rs % 60
+            if rm >= 60:
+                rh += rm // 60
+                rm = rm % 60
+        cues.append((rh, rm, rs, rfr, fade_ms, 0,
+                     f"{sec//60}:{sec%60:02d}+{offset_f+hold_f}f rel {dmx} 0 ({fade_ms}ms)"))
         last_attack_sec = sec
 
     # Hard black at end of composition
