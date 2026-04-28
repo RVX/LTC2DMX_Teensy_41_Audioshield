@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED — do not edit by hand.
-// Generated: 2026-04-28 09:40 UTC  by gen_saber_cues.py
+// Generated: 2026-04-28 10:02 UTC  by gen_saber_cues.py
 // Source: controlled_burn_luma.csv  metric: yp99_raw
 //
 // ADJ Saber Spot WW — ENVELOPE FOLLOWER on p99
@@ -97,6 +97,7 @@ static const DMXCue SABER_CUE_LIST[] = {
     {  0,  8, 47,  0,    1293, W(  0) },   // 8:47 release dmx194→0 over 1.3s
     {  0,  9,  4,  0,       0, W( 20) },   // 9:04 attack→dmx20
     {  0,  9,  5,  0,       0, W( 33) },   // 9:05 attack→dmx33
+    {  0,  9,  6,  0,     220, W(  0) },   // 9:06 release dmx33→0 over 0.2s
     {  0,  9,  7,  0,       0, W( 57) },   // 9:07 attack→dmx57
     {  0,  9,  8,  0,       0, W( 72) },   // 9:08 attack→dmx72
     {  0,  9,  9,  0,     480, W(  0) },   // 9:09 release dmx72→0 over 0.5s
@@ -123,8 +124,9 @@ static const DMXCue SABER_CUE_LIST[] = {
     {  0, 11, 22,  0,       0, W( 88) },   // 11:22 attack→dmx88
     {  0, 11, 23,  0,     586, W(  0) },   // 11:23 release dmx88→0 over 0.6s
     {  0, 11, 24,  0,       0, W(104) },   // 11:24 attack→dmx104
-    {  0, 11, 26,  0,     693, W(  0) },   // 11:26 release dmx104→0 over 0.7s
-    {  0, 11, 27,  0,       0, W( 81) },   // 11:27 attack→dmx81
+    {  0, 11, 25,  0,     693, W(  0) },   // 11:25 release dmx104→0 over 0.7s
+    {  0, 11, 26,  0,       0, W( 95) },   // 11:26 attack→dmx95
+    {  0, 11, 27,  0,     633, W(  0) },   // 11:27 release dmx95→0 over 0.6s
     {  0, 11, 28,  0,       0, W( 86) },   // 11:28 attack→dmx86
     {  0, 11, 29,  0,     573, W(  0) },   // 11:29 release dmx86→0 over 0.6s
     {  0, 11, 30,  0,       0, W( 59) },   // 11:30 attack→dmx59
@@ -155,28 +157,31 @@ static const DMXCue SABER_CUE_LIST[] = {
     {  0, 11, 55,  0,    1553, W(  0) },   // 11:55 release dmx233→0 over 1.6s
     {  0, 11, 56,  0,       0, W(225) },   // 11:56 attack→dmx225
     {  0, 11, 57,  0,       0, W(234) },   // 11:57 attack→dmx234
-    {  0, 11, 59,  0,    1560, W(  0) },   // 11:59 release dmx234→0 over 1.6s
-    {  0, 12,  0,  0,       0, W(222) },   // 12:00 attack→dmx222
-    {  0, 12,  2,  0,       0, W(227) },   // 12:02 attack→dmx227
-    {  0, 12,  3,  0,    1513, W(  0) },   // 12:03 release dmx227→0 over 1.5s
+    {  0, 11, 58,  0,    1560, W(  0) },   // 11:58 release dmx234→0 over 1.6s
+    {  0, 11, 59,  0,       0, W(229) },   // 11:59 attack→dmx229
+    {  0, 12,  0,  0,    1526, W(  0) },   // 12:00 release dmx229→0 over 1.5s
+    {  0, 12,  1,  0,       0, W(224) },   // 12:01 attack→dmx224
+    {  0, 12,  3,  0,    1493, W(  0) },   // 12:03 release dmx224→0 over 1.5s
     {  0, 12,  4,  0,       0, W(218) },   // 12:04 attack→dmx218
     {  0, 12,  5,  0,       0, W(227) },   // 12:05 attack→dmx227
     {  0, 12,  6,  0,       0, W(238) },   // 12:06 attack→dmx238
     {  0, 12,  7,  0,    1586, W(  0) },   // 12:07 release dmx238→0 over 1.6s
     {  0, 12,  8,  0,       0, W(226) },   // 12:08 attack→dmx226
-    {  0, 12, 10,  0,    1506, W(  0) },   // 12:10 release dmx226→0 over 1.5s
-    {  0, 12, 11,  0,       0, W(178) },   // 12:11 attack→dmx178
-    {  0, 12, 12,  0,    1186, W(  0) },   // 12:12 release dmx178→0 over 1.2s
+    {  0, 12,  9,  0,    1506, W(  0) },   // 12:09 release dmx226→0 over 1.5s
+    {  0, 12, 10,  0,       0, W(225) },   // 12:10 attack→dmx225
+    {  0, 12, 11,  0,    1500, W(  0) },   // 12:11 release dmx225→0 over 1.5s
     {  0, 12, 13,  0,       0, W(142) },   // 12:13 attack→dmx142
     {  0, 12, 14,  0,       0, W(216) },   // 12:14 attack→dmx216
     {  0, 12, 15,  0,       0, W(233) },   // 12:15 attack→dmx233
-    {  0, 12, 17,  0,    1553, W(  0) },   // 12:17 release dmx233→0 over 1.6s
+    {  0, 12, 16,  0,    1553, W(  0) },   // 12:16 release dmx233→0 over 1.6s
+    {  0, 12, 17,  0,       0, W(224) },   // 12:17 attack→dmx224
     {  0, 12, 18,  0,       0, W(233) },   // 12:18 attack→dmx233
     {  0, 12, 20,  0,    1553, W(  0) },   // 12:20 release dmx233→0 over 1.6s
     {  0, 12, 22,  0,       0, W(113) },   // 12:22 attack→dmx113
     {  0, 12, 23,  0,       0, W(198) },   // 12:23 attack→dmx198
     {  0, 12, 24,  0,       0, W(232) },   // 12:24 attack→dmx232
-    {  0, 12, 26,  0,    1546, W(  0) },   // 12:26 release dmx232→0 over 1.5s
+    {  0, 12, 25,  0,    1546, W(  0) },   // 12:25 release dmx232→0 over 1.5s
+    {  0, 12, 26,  0,       0, W(211) },   // 12:26 attack→dmx211
     {  0, 12, 27,  0,       0, W(225) },   // 12:27 attack→dmx225
     {  0, 12, 28,  0,       0, W(234) },   // 12:28 attack→dmx234
     {  0, 12, 29,  0,    1560, W(  0) },   // 12:29 release dmx234→0 over 1.6s
@@ -193,8 +198,9 @@ static const DMXCue SABER_CUE_LIST[] = {
     {  0, 12, 40,  0,       0, W(210) },   // 12:40 attack→dmx210
     {  0, 12, 41,  0,       0, W(218) },   // 12:41 attack→dmx218
     {  0, 12, 42,  0,       0, W(233) },   // 12:42 attack→dmx233
-    {  0, 12, 44,  0,    1553, W(  0) },   // 12:44 release dmx233→0 over 1.6s
-    {  0, 12, 45,  0,       0, W(233) },   // 12:45 attack→dmx233
+    {  0, 12, 43,  0,    1553, W(  0) },   // 12:43 release dmx233→0 over 1.6s
+    {  0, 12, 44,  0,       0, W(232) },   // 12:44 attack→dmx232
+    {  0, 12, 45,  0,    1546, W(  0) },   // 12:45 release dmx232→0 over 1.5s
     {  0, 12, 46,  0,       0, W(238) },   // 12:46 attack→dmx238
     {  0, 12, 47,  0,    1586, W(  0) },   // 12:47 release dmx238→0 over 1.6s
     {  0, 12, 48,  0,       0, W(242) },   // 12:48 attack→dmx242
@@ -331,9 +337,11 @@ static const DMXCue SABER_CUE_LIST[] = {
     {  0, 16, 18,  0,       0, W(117) },   // 16:18 attack→dmx117
     {  0, 16, 19,  0,     780, W(  0) },   // 16:19 release dmx117→0 over 0.8s
     {  0, 16, 20,  0,       0, W(107) },   // 16:20 attack→dmx107
+    {  0, 16, 22,  0,     713, W(  0) },   // 16:22 release dmx107→0 over 0.7s
     {  0, 16, 23,  0,       0, W(121) },   // 16:23 attack→dmx121
     {  0, 16, 24,  0,       0, W(125) },   // 16:24 attack→dmx125
     {  0, 16, 25,  0,       0, W(193) },   // 16:25 attack→dmx193
+    {  0, 16, 26,  0,    1286, W(  0) },   // 16:26 release dmx193→0 over 1.3s
     {  0, 16, 27,  0,       0, W(214) },   // 16:27 attack→dmx214
     {  0, 16, 28,  0,    1426, W(  0) },   // 16:28 release dmx214→0 over 1.4s
     {  0, 16, 29,  0,       0, W(209) },   // 16:29 attack→dmx209
@@ -357,8 +365,7 @@ static const DMXCue SABER_CUE_LIST[] = {
     {  0, 16, 54,  0,       0, W(159) },   // 16:54 attack→dmx159
     {  0, 16, 55,  0,       0, W(193) },   // 16:55 attack→dmx193
     {  0, 16, 56,  0,    1286, W(  0) },   // 16:56 release dmx193→0 over 1.3s
-    {  0, 16, 57,  0,       0, W( 45) },   // 16:57 attack→dmx45
-    {  0, 16, 58,  0,     300, W(  0) },   // 16:58 release dmx45→0 over 0.3s
+    {  0, 16, 58,  0,       0, W( 32) },   // 16:58 attack→dmx32
     {  0, 16, 59,  0,       0, W( 53) },   // 16:59 attack→dmx53
     {  0, 17,  0,  0,     353, W(  0) },   // 17:00 release dmx53→0 over 0.4s
     {  0, 17,  1,  0,       0, W( 23) },   // 17:01 attack→dmx23
@@ -461,7 +468,7 @@ static const DMXCue SABER_CUE_LIST[] = {
     {  0, 19, 58,  0,     686, W(  0) },   // 19:58 release dmx103→0 over 0.7s
     {  0, 20,  0,  0,       0, W( 14) },   // 20:00 attack→dmx14
     {  0, 20,  1,  0,       0, W( 30) },   // 20:01 attack→dmx30
-    {  0, 20,  3,  0,     200, W(  0) },   // 20:03 release dmx30→0 over 0.2s
+    {  0, 20,  2,  0,     200, W(  0) },   // 20:02 release dmx30→0 over 0.2s
     {  0, 20,  4,  0,       0, W( 11) },   // 20:04 attack→dmx11
     {  0, 20,  5,  0,       0, W( 30) },   // 20:05 attack→dmx30
     {  0, 20,  6,  0,     200, W(  0) },   // 20:06 release dmx30→0 over 0.2s
@@ -518,6 +525,7 @@ static const DMXCue SABER_CUE_LIST[] = {
     {  0, 21,  9,  0,       0, W( 33) },   // 21:09 attack→dmx33
     {  0, 21, 10,  0,     220, W(  0) },   // 21:10 release dmx33→0 over 0.2s
     {  0, 21, 19,  0,       0, W(  9) },   // 21:19 attack→dmx9
+    {  0, 21, 20,  0,      60, W(  0) },   // 21:20 release dmx9→0 over 0.1s
     {  0, 21, 21,  0,       0, W( 40) },   // 21:21 attack→dmx40
     {  0, 21, 22,  0,       0, W( 75) },   // 21:22 attack→dmx75
     {  0, 21, 23,  0,     500, W(  0) },   // 21:23 release dmx75→0 over 0.5s
@@ -537,8 +545,9 @@ static const DMXCue SABER_CUE_LIST[] = {
     {  0, 21, 41,  0,    1273, W(  0) },   // 21:41 release dmx191→0 over 1.3s
     {  0, 21, 42,  0,       0, W( 87) },   // 21:42 attack→dmx87
     {  0, 21, 43,  0,       0, W(161) },   // 21:43 attack→dmx161
-    {  0, 21, 45,  0,    1073, W(  0) },   // 21:45 release dmx161→0 over 1.1s
-    {  0, 21, 46,  0,       0, W( 28) },   // 21:46 attack→dmx28
+    {  0, 21, 44,  0,    1073, W(  0) },   // 21:44 release dmx161→0 over 1.1s
+    {  0, 21, 45,  0,       0, W( 67) },   // 21:45 attack→dmx67
+    {  0, 21, 46,  0,     446, W(  0) },   // 21:46 release dmx67→0 over 0.4s
     {  0, 21, 47,  0,       0, W( 54) },   // 21:47 attack→dmx54
     {  0, 21, 48,  0,       0, W(183) },   // 21:48 attack→dmx183
     {  0, 21, 49,  0,       0, W(211) },   // 21:49 attack→dmx211
@@ -562,7 +571,7 @@ static const DMXCue SABER_CUE_LIST[] = {
     {  0, 25, 53,  0,     160, W(  0) },   // 25:53 release dmx24→0 over 0.2s
     {  0, 26,  3,  0,       0, W( 12) },   // 26:03 attack→dmx12
     {  0, 26,  4,  0,       0, W( 42) },   // 26:04 attack→dmx42
-    {  0, 26,  6,  0,     280, W(  0) },   // 26:06 release dmx42→0 over 0.3s
+    {  0, 26,  5,  0,     280, W(  0) },   // 26:05 release dmx42→0 over 0.3s
     {  0, 26,  8,  0,       0, W(  9) },   // 26:08 attack→dmx9
     {  0, 26,  9,  0,      60, W(  0) },   // 26:09 release dmx9→0 over 0.1s
     {  0, 26, 17,  0,       0, W( 27) },   // 26:17 attack→dmx27
@@ -572,9 +581,10 @@ static const DMXCue SABER_CUE_LIST[] = {
     {  0, 26, 21,  0,       0, W( 79) },   // 26:21 attack→dmx79
     {  0, 26, 22,  0,     526, W(  0) },   // 26:22 release dmx79→0 over 0.5s
     {  0, 26, 23,  0,       0, W(107) },   // 26:23 attack→dmx107
-    {  0, 26, 25,  0,     713, W(  0) },   // 26:25 release dmx107→0 over 0.7s
-    {  0, 26, 26,  0,       0, W( 26) },   // 26:26 attack→dmx26
-    {  0, 26, 27,  0,     173, W(  0) },   // 26:27 release dmx26→0 over 0.2s
+    {  0, 26, 24,  0,     713, W(  0) },   // 26:24 release dmx107→0 over 0.7s
+    {  0, 26, 25,  0,       0, W( 41) },   // 26:25 attack→dmx41
+    {  0, 26, 26,  0,     273, W(  0) },   // 26:26 release dmx41→0 over 0.3s
+    {  0, 26, 27,  0,       0, W( 12) },   // 26:27 attack→dmx12
     {  0, 26, 28,  0,       0, W(132) },   // 26:28 attack→dmx132
     {  0, 26, 29,  0,     880, W(  0) },   // 26:29 release dmx132→0 over 0.9s
     {  0, 26, 30,  0,       0, W( 78) },   // 26:30 attack→dmx78
@@ -611,6 +621,7 @@ static const DMXCue SABER_CUE_LIST[] = {
     {  0, 27,  3,  0,       0, W( 30) },   // 27:03 attack→dmx30
     {  0, 27,  4,  0,     200, W(  0) },   // 27:04 release dmx30→0 over 0.2s
     {  0, 27,  5,  0,       0, W( 10) },   // 27:05 attack→dmx10
+    {  0, 27,  6,  0,      66, W(  0) },   // 27:06 release dmx10→0 over 0.1s
     {  0, 27,  7,  0,       0, W( 15) },   // 27:07 attack→dmx15
     {  0, 27,  8,  0,       0, W( 30) },   // 27:08 attack→dmx30
     {  0, 27,  9,  0,     200, W(  0) },   // 27:09 release dmx30→0 over 0.2s
@@ -646,9 +657,12 @@ static const DMXCue SABER_CUE_LIST[] = {
     {  0, 28,  8,  0,       0, W( 81) },   // 28:08 attack→dmx81
     {  0, 28,  9,  0,     540, W(  0) },   // 28:09 release dmx81→0 over 0.5s
     {  0, 28, 23,  0,       0, W( 24) },   // 28:23 attack→dmx24
-    {  0, 28, 25,  0,     160, W(  0) },   // 28:25 release dmx24→0 over 0.2s
+    {  0, 28, 24,  0,     160, W(  0) },   // 28:24 release dmx24→0 over 0.2s
+    {  0, 28, 25,  0,       0, W( 21) },   // 28:25 attack→dmx21
     {  0, 28, 26,  0,       0, W( 32) },   // 28:26 attack→dmx32
-    {  0, 28, 28,  0,     213, W(  0) },   // 28:28 release dmx32→0 over 0.2s
+    {  0, 28, 27,  0,     213, W(  0) },   // 28:27 release dmx32→0 over 0.2s
+    {  0, 28, 28,  0,       0, W( 32) },   // 28:28 attack→dmx32
+    {  0, 28, 29,  0,     213, W(  0) },   // 28:29 release dmx32→0 over 0.2s
     {  0, 28, 30,  0,       0, W( 29) },   // 28:30 attack→dmx29
     {  0, 28, 31,  0,     193, W(  0) },   // 28:31 release dmx29→0 over 0.2s
     {  0, 28, 32,  0,       0, W( 19) },   // 28:32 attack→dmx19

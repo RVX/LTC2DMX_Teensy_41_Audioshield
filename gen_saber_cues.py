@@ -118,8 +118,8 @@ def compute_envelope(data):
             prev_sec = None
             continue
         target = p99_to_dmx(p99_map[sec])
-        if target >= prev:
-            # Attack: snap to peak
+        if target >= prev + DELTA_THRESH:
+            # Attack: new peak is meaningfully higher than current level → snap up
             env[sec] = target
         else:
             # Release: linear decay, accounting for any time gap
