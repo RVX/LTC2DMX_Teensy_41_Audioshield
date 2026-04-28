@@ -29,6 +29,7 @@ Output: src/cues_control_burn.h
 import csv
 import math
 import os
+import random
 import sys
 from datetime import datetime
 
@@ -65,6 +66,44 @@ START_RISE_TARGET  = 40           # DMX value reached after INTRO_FADE_MS
 END_FADE_TIME      = (0, 30, 24)  # start of outro fade
 END_BLACK_TIME     = (0, 31, 38)  # final hard black
 
+# ── INJECTED DIP EVENTS ─────────────────────────────────────────────────────────
+# At each (mm, ss) timestamp the backlight does a fast pitch-down to 0 then
+# returns to whatever value it would otherwise be at that moment.
+DIP_EVENTS_MMSS = [
+    (5,22), (5,25), (5,36), (5,43), (5,51),
+    (6, 1), (6, 3), (6, 4), (6, 9), (6,12), (6,18),
+    (6,38), (6,55), (7,19),
+    (10,43), (10,50), (10,57), (11, 6),
+    (14,34), (14,44), (14,49), (14,56),
+    (15, 7), (15,18),
+]
+DIP_DOWN_MS         = 80          # snap-down fade duration
+DIP_HOLD_FRAMES     = 4           # ~133 ms of darkness
+DIP_RECOVER_MS      = 250         # quick fade back up to base value
+
+# ── INJECTED FLICKER EVENTS ─────────────────────────────────────────────────────
+# (mm, ss, dmx_lo, dmx_hi, n_flicks, gap_frames_min, gap_frames_max, fade_ms)
+# Then return to base after the burst.
+FLICKER_EVENTS = [
+    # Subtle flicker 5–30
+    ( 6,26,  5, 30, 6, 3, 6, 80),
+    ( 6,33,  5, 30, 6, 3, 6, 80),
+    # Subtle flicker 5–40
+    (10,28,  5, 40, 6, 3, 6, 90),
+    (12, 4,  5, 40, 6, 3, 6, 90),
+    (12,38,  5, 40, 6, 3, 6, 90),
+    (12,54,  5, 40, 6, 3, 6, 90),
+    # Mid flicker 50–80
+    (11,22, 50, 80, 5, 2, 5, 70),
+    (11,51, 50, 80, 5, 2, 5, 70),
+    (12,24, 50, 80, 5, 2, 5, 70),
+    # Superfast flicker 50–80
+    (13,58, 50, 80, 10, 1, 2, 40),
+    (14,14, 50, 80, 10, 1, 2, 40),
+    (15,27, 50, 80, 10, 1, 2, 40),
+]
+FLICKER_RANDOM_SEED = 7
+
 # ─────────────────────────────────────────────────────────────────────────────
 
 def load_yavg(csv_path):
@@ -100,6 +139,32 @@ def sec_to_hms(sec):
     return sec // 3600, (sec % 3600) // 60, sec % 60
 
 
+def normalise(h, m, s, f):
+    """Carry frame/sec/min overflow up the units."""
+    if f >= 30:
+        s += f // 30
+        f = f % 30
+    if s >= 60:
+        m += s // 60
+        s = s % 60
+    if m >= 60:
+        h += m // 60
+        m = m % 60
+    return h, m, s, f
+
+
+def compute_oscillating_dmx(sec, yavg_sm):
+    """Replicate the regular oscillation formula for any second."""
+    base, darkness = yavg_to_inverted_dmx(yavg_sm)
+    breath_amp    = BREATH_AMP_MIN + darkness * (BREATH_AMP_MAX - BREATH_AMP_MIN)
+    breath_period = BREATH_PERIOD_BRIGHT_SEC + darkness * (BREATH_PERIOD_DARK_SEC - BREATH_PERIOD_BRIGHT_SEC)
+    wobble_amp    = WOBBLE_AMP_MIN + darkness * (WOBBLE_AMP_MAX - WOBBLE_AMP_MIN)
+    breath = breath_amp * math.sin(2 * math.pi * sec / breath_period)
+    wobble = wobble_amp * math.sin(2 * math.pi * sec / WOBBLE_PERIOD_SEC + 1.3)
+    return int(round(max(BACKLIGHT_FLOOR,
+                         min(BACKLIGHT_HARD_CAP, base + breath + wobble))))
+
+
 def generate_cues(data):
     # 1. Smooth video luma so backlight follows narrative, not micro-flicker.
     secs   = [s   for s, _ in data]
@@ -107,15 +172,16 @@ def generate_cues(data):
     yavg_s = smooth(yavgs, SMOOTH_WINDOW_SEC)
 
     cues = []
-    cues.append((0, 0, 0, 0, 0, "hard black at start"))
+    cues.append((0, 0, 0, 0, 0, 0, "hard black at start"))
     # Smooth rise from black (composition opening)
     rh, rm, rs = START_RISE_TIME
-    cues.append((rh, rm, rs, START_RISE_TARGET, INTRO_FADE_MS,
+    cues.append((rh, rm, rs, 0, START_RISE_TARGET, INTRO_FADE_MS,
                  f"smooth rise → DMX {START_RISE_TARGET} over {INTRO_FADE_MS//1000}s"))
 
     # Begin oscillating inverted-luma generation AFTER the intro rise has reached target
     rise_end_sec = rh * 3600 + rm * 60 + rs + INTRO_FADE_MS // 1000
     end_sec      = END_FADE_TIME[0] * 3600 + END_FADE_TIME[1] * 60 + END_FADE_TIME[2]
+    yavg_sm_map  = dict(zip(secs, yavg_s))
 
     last_emit = START_RISE_TARGET
     for sec, yavg, yavg_sm in zip(secs, yavgs, yavg_s):
@@ -124,32 +190,65 @@ def generate_cues(data):
         if (sec - rise_end_sec) % EMIT_EVERY_SEC != 0:
             continue
 
-        base, darkness = yavg_to_inverted_dmx(yavg_sm)
-        # Breath: amplitude AND period scale with darkness — dark = deep & slow
-        breath_amp    = BREATH_AMP_MIN + darkness * (BREATH_AMP_MAX - BREATH_AMP_MIN)
-        breath_period = BREATH_PERIOD_BRIGHT_SEC + darkness * (BREATH_PERIOD_DARK_SEC - BREATH_PERIOD_BRIGHT_SEC)
-        wobble_amp    = WOBBLE_AMP_MIN + darkness * (WOBBLE_AMP_MAX - WOBBLE_AMP_MIN)
-
-        breath = breath_amp * math.sin(2 * math.pi * sec / breath_period)
-        wobble = wobble_amp * math.sin(2 * math.pi * sec / WOBBLE_PERIOD_SEC + 1.3)
-        dmx    = int(round(max(BACKLIGHT_FLOOR,
-                               min(BACKLIGHT_HARD_CAP, base + breath + wobble))))
+        dmx = compute_oscillating_dmx(sec, yavg_sm)
 
         if abs(dmx - last_emit) < DELTA_SKIP:
             continue
 
         h, m, s = sec_to_hms(sec)
-        cues.append((h, m, s, dmx, FADE_MS,
-                     f"yavg={yavg:5.1f} sm={yavg_sm:5.1f} dk={darkness:.2f} inv→{int(round(base))} +br={breath:+.0f} +wb={wobble:+.0f} → DMX {dmx}"))
+        cues.append((h, m, s, 0, dmx, FADE_MS,
+                     f"yavg={yavg:5.1f} sm={yavg_sm:5.1f} → DMX {dmx}"))
         last_emit = dmx
+
+    # ── INJECTED DIP EVENTS ───────────────────────────────────────────────────
+    for mm, ss in DIP_EVENTS_MMSS:
+        ev_sec = mm * 60 + ss
+        if ev_sec not in yavg_sm_map:
+            continue
+        base_dmx = compute_oscillating_dmx(ev_sec, yavg_sm_map[ev_sec])
+        h0, m0, s0 = sec_to_hms(ev_sec)
+        # Snap down to 0
+        cues.append((h0, m0, s0, 0, 0, DIP_DOWN_MS,
+                     f"{mm}:{ss:02d} DIP ↓ 0 ({DIP_DOWN_MS}ms)"))
+        # Hold dark briefly, then quick recover to base
+        rh2, rm2, rs2, rf2 = normalise(h0, m0, s0, DIP_HOLD_FRAMES)
+        cues.append((rh2, rm2, rs2, rf2, base_dmx, DIP_RECOVER_MS,
+                     f"{mm}:{ss:02d} DIP ↑ back to {base_dmx} ({DIP_RECOVER_MS}ms)"))
+
+    # ── INJECTED FLICKER EVENTS ─────────────────────────────────────────────────
+    rng = random.Random(FLICKER_RANDOM_SEED)
+    for mm, ss, lo, hi, n_flicks, gap_lo, gap_hi, fade_ms in FLICKER_EVENTS:
+        ev_sec = mm * 60 + ss
+        if ev_sec not in yavg_sm_map:
+            continue
+        base_dmx = compute_oscillating_dmx(ev_sec, yavg_sm_map[ev_sec])
+        h0, m0, s0 = sec_to_hms(ev_sec)
+        cur_f = 0
+        last_v = -999
+        for i in range(n_flicks):
+            for _ in range(6):
+                v = rng.randint(lo, hi)
+                if abs(v - last_v) >= max(3, (hi - lo) // 4):
+                    break
+            last_v = v
+            ah, am, as_, af = normalise(h0, m0, s0, cur_f)
+            cues.append((ah, am, as_, af, v, fade_ms,
+                         f"{mm}:{ss:02d} FLICK#{i+1} → {v} ({fade_ms}ms)"))
+            cur_f += rng.randint(gap_lo, gap_hi)
+        # Recover to base
+        rh2, rm2, rs2, rf2 = normalise(h0, m0, s0, cur_f + 2)
+        cues.append((rh2, rm2, rs2, rf2, base_dmx, 300,
+                     f"{mm}:{ss:02d} FLICK recover → {base_dmx}"))
 
     # Outro: fade to black
     eh, em, es = END_FADE_TIME
-    cues.append((eh, em, es, 0, OUTRO_FADE_MS,
+    cues.append((eh, em, es, 0, 0, OUTRO_FADE_MS,
                  f"fade to black over {OUTRO_FADE_MS//1000}s"))
     bh, bm, bs = END_BLACK_TIME
-    cues.append((bh, bm, bs, 0, 0, "hard black at end"))
+    cues.append((bh, bm, bs, 0, 0, 0, "hard black at end"))
 
+    # Sort by absolute frame time so injected sub-second cues land in order
+    cues.sort(key=lambda c: (c[0]*3600 + c[1]*60 + c[2]) * 30 + c[3])
     return cues
 
 
@@ -184,13 +283,13 @@ def write_header(cues, output_path):
     lines.append("")
 
     last_min = None
-    for h, m, s, dmx, fade, comment in cues:
+    for h, m, s, frames, dmx, fade, comment in cues:
         if m != last_min:
             if last_min is not None:
                 lines.append("")
             lines.append(f"    // ── {h:02d}:{m:02d}:xx ──")
             last_min = m
-        lines.append(f"    {{ {h:2d}, {m:2d}, {s:2d}, 0, {fade:6d}, V({dmx:3d}, 0) }},   // {comment}")
+        lines.append(f"    {{ {h:2d}, {m:2d}, {s:2d}, {frames:2d}, {fade:6d}, V({dmx:3d}, 0) }},   // {comment}")
 
     lines.append("")
     lines.append("};  // END CUE_LIST")
@@ -213,7 +312,7 @@ def main():
     print(f"  {len(data)} seconds loaded")
 
     cues = generate_cues(data)
-    body_dmx = [c[3] for c in cues if c[4] == FADE_MS]
+    body_dmx = [c[4] for c in cues if c[5] == FADE_MS]
     print(f"  {len(cues)} backlight cues generated  ({len(body_dmx)} oscillation cues)")
     if body_dmx:
         print(f"  Body DMX range: {min(body_dmx)}-{max(body_dmx)}, mean {sum(body_dmx)/len(body_dmx):.1f}")

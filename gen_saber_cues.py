@@ -79,9 +79,21 @@ MIN_ATTACK_GAP_SEC = 0   # no per-second cooldown — sub-flashes drive density
 # random intensities in EXTRA_DMX_RANGE, very short decay (flash/strobe feel).
 # These run regardless of fire-zone membership.
 EXTRA_FLASH_MOMENTS_MMSS = [
+    # Original tightened batch (3:21..5:15)
     (3,21), (3,30), (3,38), (3,42), (3,52),
     (4, 0), (4, 7), (4,11), (4,53),
     (5, 7), (5,15),
+    # New strobe batch (5:22..15:27)
+    (5,22), (5,25), (5,36), (5,43), (5,51),
+    (6, 1), (6, 3), (6, 4), (6, 9), (6,12), (6,18),
+    (6,26), (6,33), (6,38), (6,55),
+    (7,19),
+    (10,28), (10,43), (10,50), (10,57),
+    (11, 6), (11,22), (11,51),
+    (12, 4), (12,24), (12,38), (12,54),
+    (13,58),
+    (14,14), (14,34), (14,44), (14,49), (14,56),
+    (15, 7), (15,18), (15,27),
 ]
 EXTRA_DMX_MIN        = 150
 EXTRA_DMX_MAX        = 255
