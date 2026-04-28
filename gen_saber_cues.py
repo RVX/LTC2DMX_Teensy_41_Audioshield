@@ -56,7 +56,9 @@ HOLD_FRAMES_BURST   = 8     # frames before release starts (explosion moments)
 BURST_THRESH_DMX    = 180   # DMX value above which burst hold is used
 
 # ── Cue filter ────────────────────────────────────────────────────────────────
-DELTA_THRESH  = 3    # minimum DMX value to emit a cue (ignore noise near 0)
+DELTA_THRESH       = 3    # minimum DMX value to emit a cue (ignore noise near 0)
+MIN_ATTACK_GAP_SEC = 3   # min seconds between attacks (cooldown); ensures fade
+                          # fully completes before next snap (hold + fade < gap)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -152,12 +154,16 @@ def generate_cues(data):
     cues = []
     cues.append((0, 0, 0, 0, 0, 0, "hard black at start"))
 
+    last_attack_sec = -999  # tracks cooldown
+
     for sec, p99 in data:
         if not in_fire_zone(sec):
             continue
         dmx = p99_to_dmx(p99)
         if dmx <= DELTA_THRESH:
             continue
+        if sec < last_attack_sec + MIN_ATTACK_GAP_SEC:
+            continue  # cooldown — previous fade still completing
 
         h, m, s  = sec_to_hms(sec)
         hold_f   = HOLD_FRAMES_BURST if dmx >= BURST_THRESH_DMX else HOLD_FRAMES_NORMAL
@@ -170,6 +176,7 @@ def generate_cues(data):
         # 2. Forced release after hold
         cues.append((h, m, s, hold_f, fade_ms, 0,
                      f"{sec//60}:{sec%60:02d}+{hold_f}f release {dmx}\u21920 ({dmx/RELEASE_RATE:.1f}s)"))
+        last_attack_sec = sec
 
     # Hard black at end of composition
     cues.append((0, 31, 38, 0, 0, 0, "hard black at end"))
