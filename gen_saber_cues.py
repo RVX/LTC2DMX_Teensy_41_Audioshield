@@ -51,17 +51,27 @@ ZONE_B = (1474, 1828)   # extended to 30:28 so release is generated naturally
 #
 # Release fade duration = dmx / RELEASE_RATE * 1000 ms
 #   RELEASE_RATE = 150  → 255→0 in ~1.7 s
-RELEASE_RATE        = 1500  # DMX units / second — explosion snap (160→0 in ~107 ms)
-HOLD_FRAMES_NORMAL  = 1     # ~33 ms hold before release — single-frame flash
-HOLD_FRAMES_BURST   = 1     # same: every flash is sharp, no soft pulses
-BURST_THRESH_DMX    = 120   # DMX value above which burst hold is used
-JITTER_MAX_FRAMES   = 25    # random 0–25 frame offset (0–833 ms within the second)
-                            # — breaks the on-the-beat rhythm, makes flashes unpredictable
-RANDOM_SEED         = 42    # deterministic chaos: same seed = same jitter pattern
+DECAY_BUCKETS_MS    = [(2500, "SHARP"), (1500, "FAST"), (900, "SOFT")]
+DECAY_WEIGHTS       = [3, 4, 2]
+HOLD_CHOICES_FRAMES = [1, 1, 2]
+BRIGHTNESS_JITTER    = 0.30
+BRIGHTNESS_DELTA_MIN = 18
+SUB_FLASH_THRESH_2  = 60
+SUB_FLASH_THRESH_3  = 110
+SUB_FLASH_PROB_2    = 0.55
+SUB_FLASH_PROB_3    = 0.35
+MIN_SUBFLASH_GAP_F  = 5
+MAX_SUBFLASH_GAP_F  = 14
+RELEASE_RATE        = 1500
+HOLD_FRAMES_NORMAL  = 1
+HOLD_FRAMES_BURST   = 1
+BURST_THRESH_DMX    = 120
+JITTER_MAX_FRAMES   = 25
+RANDOM_SEED         = 42
 
 # ── Cue filter ─────────────────────────────────────────────────────────────────────
-DELTA_THRESH       = 3    # minimum DMX value to emit a cue (ignore noise near 0)
-MIN_ATTACK_GAP_SEC = 1    # min seconds between attacks — fast follow, no muffling
+DELTA_THRESH       = 3
+MIN_ATTACK_GAP_SEC = 0   # no per-second cooldown — sub-flashes drive density
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -143,58 +153,95 @@ def compute_envelope(data):
 
 def generate_cues(data):
     """
-    Per-second pulse model — replaces envelope follower.
+    Chaotic fireworks model.
 
-    For every second inside a fire zone where p99 > threshold:
-      1. Attack  : { H, M, S,          0, 0,        W(dmx) }  snap to peak
-      2. Release : { H, M, S, HOLD_FRAMES, fade_ms,  W(0)  }  fade to 0
+    For every second inside a fire zone with p99-derived dmx > threshold,
+    spawn 1–3 sub-flashes. Each sub-flash has:
+      - randomised brightness   = base_dmx ± BRIGHTNESS_JITTER, anti-repeated
+      - randomised sharpness    = pick from DECAY_BUCKETS_MS
+      - randomised hold time    = pick from HOLD_CHOICES_FRAMES
+      - randomised sub-second offset, with min spacing between sub-flashes
 
-    High-intensity seconds (dmx >= BURST_THRESH_DMX) use HOLD_FRAMES_BURST
-    (~267 ms) for a strobe feel; others use HOLD_FRAMES_NORMAL (500 ms).
-
-    Tuple format: (h, m, s, frames, fade_ms, dmx, comment)
+    Cue tuple: (h, m, s, frames, fade_ms, dmx, comment)
     """
     cues = []
     cues.append((0, 0, 0, 0, 0, 0, "hard black at start"))
 
-    last_attack_sec = -999  # tracks cooldown
     rng = random.Random(RANDOM_SEED)
+    last_brightness = 0  # for anti-repetition across consecutive flashes
+
+    def pick_brightness(base):
+        # Jitter ±BRIGHTNESS_JITTER, then enforce min delta from last flash.
+        for _ in range(6):
+            j = 1.0 + rng.uniform(-BRIGHTNESS_JITTER, BRIGHTNESS_JITTER)
+            v = int(round(base * j))
+            v = max(SABER_FLOOR, min(SABER_APEX, v))
+            if abs(v - last_brightness) >= BRIGHTNESS_DELTA_MIN:
+                return v
+        # Fallback: force a delta in opposite direction
+        if base >= last_brightness:
+            return min(SABER_APEX, last_brightness + BRIGHTNESS_DELTA_MIN + rng.randint(0, 10))
+        return max(SABER_FLOOR, last_brightness - BRIGHTNESS_DELTA_MIN - rng.randint(0, 10))
+
+    def normalise(h, m, s, f):
+        if f >= 30:
+            s += f // 30
+            f = f % 30
+        if s >= 60:
+            m += s // 60
+            s = s % 60
+        if m >= 60:
+            h += m // 60
+            m = m % 60
+        return h, m, s, f
 
     for sec, p99 in data:
         if not in_fire_zone(sec):
             continue
-        dmx = p99_to_dmx(p99)
-        if dmx <= DELTA_THRESH:
+        base_dmx = p99_to_dmx(p99)
+        if base_dmx <= DELTA_THRESH:
             continue
-        if sec < last_attack_sec + MIN_ATTACK_GAP_SEC:
-            continue  # cooldown — previous fade still completing
 
-        h, m, s  = sec_to_hms(sec)
-        hold_f   = HOLD_FRAMES_BURST if dmx >= BURST_THRESH_DMX else HOLD_FRAMES_NORMAL
-        fade_ms  = int(dmx / RELEASE_RATE * 1000)
-        mode_tag = "BURST" if dmx >= BURST_THRESH_DMX else "pulse"
+        h, m, s = sec_to_hms(sec)
 
-        # Random sub-second offset so flashes do not land on the beat.
-        offset_f = rng.randint(0, JITTER_MAX_FRAMES)
+        # How many sub-flashes this second?
+        n = 1
+        if base_dmx >= SUB_FLASH_THRESH_2 and rng.random() < SUB_FLASH_PROB_2:
+            n = 2
+        if base_dmx >= SUB_FLASH_THRESH_3 and rng.random() < SUB_FLASH_PROB_3:
+            n = 3
 
-        # 1. Instant attack at jittered frame
-        cues.append((h, m, s, offset_f, 0, dmx,
-                     f"{sec//60}:{sec%60:02d}+{offset_f}f {mode_tag} att {dmx}"))
+        # Pick non-overlapping sub-frame offsets within the second.
+        # Reserve enough room so the last attack still fits and its release
+        # does not push too far past the second.
+        max_start = 30 - 4  # leave 4 frames at end for the final hold
+        offsets = []
+        cursor = rng.randint(0, 6)
+        for _ in range(n):
+            if cursor > max_start:
+                break
+            offsets.append(cursor)
+            cursor += rng.randint(MIN_SUBFLASH_GAP_F, MAX_SUBFLASH_GAP_F)
+        if not offsets:
+            offsets = [rng.randint(0, max_start)]
 
-        # 2. Release immediately after short hold; normalise if past sec.
-        rh, rm, rs, rfr = h, m, s, offset_f + hold_f
-        if rfr >= 30:
-            rs += rfr // 30
-            rfr = rfr % 30
-            if rs >= 60:
-                rm += rs // 60
-                rs = rs % 60
-            if rm >= 60:
-                rh += rm // 60
-                rm = rm % 60
-        cues.append((rh, rm, rs, rfr, fade_ms, 0,
-                     f"{sec//60}:{sec%60:02d}+{offset_f+hold_f}f rel {dmx} 0 ({fade_ms}ms)"))
-        last_attack_sec = sec
+        for of in offsets:
+            dmx_f       = pick_brightness(base_dmx)
+            hold_f      = rng.choice(HOLD_CHOICES_FRAMES)
+            decay_rate, tag = rng.choices(DECAY_BUCKETS_MS, weights=DECAY_WEIGHTS, k=1)[0]
+            fade_ms     = max(20, int(dmx_f / decay_rate * 1000))
+
+            # 1. Attack at jittered frame
+            ah, am, as_, af = normalise(h, m, s, of)
+            cues.append((ah, am, as_, af, 0, dmx_f,
+                         f"{sec//60}:{sec%60:02d}+{of}f {tag} att {dmx_f}"))
+
+            # 2. Release after hold
+            rh, rm, rs, rf = normalise(h, m, s, of + hold_f)
+            cues.append((rh, rm, rs, rf, fade_ms, 0,
+                         f"{sec//60}:{sec%60:02d}+{of+hold_f}f rel {dmx_f} 0 ({fade_ms}ms,{tag})"))
+
+            last_brightness = dmx_f
 
     # Hard black at end of composition
     cues.append((0, 31, 38, 0, 0, 0, "hard black at end"))
