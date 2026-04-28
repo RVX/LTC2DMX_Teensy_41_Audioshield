@@ -46,6 +46,12 @@ COMPOSITIONS = {
                 "color":  "#66ff88",   # lime green
                 "parser": "W",
             },
+            {
+                "label":  "ADJ Saber Spot WW ch5 (fixed DMX 150)",
+                "cues_h": PROJECT / "src" / "cues_saber_ww2.h",
+                "color":  "#ce93d8",   # soft violet / lavender
+                "parser": "W2",
+            },
         ],
         "framerate":  30,
         "total_sec":  1920,          # 32:00
@@ -131,21 +137,22 @@ def parse_cues(cues_h_path, framerate):
     return sorted(cues, key=lambda c: c[0])
 
 
-def parse_cues_w(cues_h_path, framerate):
+def parse_cues_w(cues_h_path, framerate, macro="W"):
     """
-    Parse single-channel cues using the W(dmx) macro:
-        { 0, H, M, S, fadeMs, W(dmx) }
+    Parse single-channel cues using a W-style macro:
+        { 0, H, M, S, fadeMs, MACRO(dmx) }
+    The macro name is configurable (e.g. "W", "W2").
     Returns list of (trigger_sec_float, dmx_target, fade_ms) sorted by time.
     """
     pat = re.compile(
-        r"\{\s*0,\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+),\s*W\(\s*(\d+)\s*\)"
+        rf"\{{\s*0,\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+),\s*{re.escape(macro)}\(\s*(\d+)\s*\)"
     )
     cues = []
     for line in cues_h_path.read_text(encoding="utf-8").splitlines():
         m = pat.search(line)
         if m:
             h, mn, s, fade_ms, dmx = [int(x) for x in m.groups()]
-            t = h * 3600 + mn * 60 + s   # frames field always 0 in saber cues
+            t = h * 3600 + mn * 60 + s
             cues.append((t, dmx, fade_ms))
     return sorted(cues, key=lambda c: c[0])
 
@@ -368,8 +375,8 @@ def main():
         if not ep.exists():
             print(f"NOTE: extra cue file not found — skipping {ep.name}")
             continue
-        if extra.get("parser", "V") == "W":
-            extra_cues = parse_cues_w(ep, FRAMERATE)
+        if extra.get("parser", "V") == "W" or extra.get("parser", "V").startswith("W"):
+            extra_cues = parse_cues_w(ep, FRAMERATE, macro=extra["parser"])
         else:
             extra_cues = parse_cues(ep, FRAMERATE)
         extra_arc  = simulate_dmx_arc(extra_cues, TOTAL_SEC)

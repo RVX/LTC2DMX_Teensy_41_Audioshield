@@ -15,7 +15,8 @@
 #  include "cues_albedo.h"
 #elif LTC_FRAMERATE == 30
 #  include "cues_control_burn.h"
-#  include "cues_saber_ww.h"   // ADJ Saber Spot WW — ch7, follows p99
+#  include "cues_saber_ww.h"   // ADJ Saber Spot WW ch7 — envelope follower p99
+#  include "cues_saber_ww2.h"  // ADJ Saber Spot WW ch5 — fixed wash DMX 150
 #else
 #  error "Unknown LTC_FRAMERATE — must be 25 (albedo) or 30 (controlled_burn) in platformio.ini"
 #endif
@@ -56,6 +57,7 @@ LTCDecoder        ltcDecoder;
 DMXController     dmxCtrl{dmxSender, CUE_LIST, CUE_COUNT, LTC_FRAMERATE};
 #if LTC_FRAMERATE == 30
 DMXController     saberCtrl{dmxSender, SABER_CUE_LIST, SABER_CUE_COUNT, LTC_FRAMERATE};
+DMXController     saberCtrl2{dmxSender, SABER2_CUE_LIST, SABER2_CUE_COUNT, LTC_FRAMERATE};
 #endif
 static bool       s_codecFailed = false;
 #ifdef ENABLE_DISPLAY
@@ -335,7 +337,8 @@ void setup()
     // -- DMX sender ------------------------------------------------------------
     dmxCtrl.begin();
 #if LTC_FRAMERATE == 30
-    saberCtrl.blackout();   // initialise ch7 state (sender already started above)
+    saberCtrl.blackout();    // initialise ch7 state (sender already started above)
+    saberCtrl2.blackout();   // initialise ch5 state
 #endif
 
 #ifdef ENABLE_DISPLAY
@@ -626,6 +629,7 @@ void loop()
                 dmxCtrl.update(tc.hours, tc.minutes, tc.seconds, tc.frames);
 #if LTC_FRAMERATE == 30
                 saberCtrl.update(tc.hours, tc.minutes, tc.seconds, tc.frames);
+                saberCtrl2.update(tc.hours, tc.minutes, tc.seconds, tc.frames);
 #endif
             }
 
@@ -661,6 +665,7 @@ void loop()
         dmxCtrl.tick();
 #if LTC_FRAMERATE == 30
         saberCtrl.tick();
+        saberCtrl2.tick();
 #endif
     }
 
