@@ -140,19 +140,19 @@ def parse_cues(cues_h_path, framerate):
 def parse_cues_w(cues_h_path, framerate, macro="W"):
     """
     Parse single-channel cues using a W-style macro:
-        { 0, H, M, S, fadeMs, MACRO(dmx) }
+        { H, M, S, frames, fadeMs, MACRO(dmx) }
     The macro name is configurable (e.g. "W", "W2").
     Returns list of (trigger_sec_float, dmx_target, fade_ms) sorted by time.
     """
     pat = re.compile(
-        rf"\{{\s*0,\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+),\s*{re.escape(macro)}\(\s*(\d+)\s*\)"
+        rf"\{{\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+),\s*{re.escape(macro)}\(\s*(\d+)\s*\)"
     )
     cues = []
     for line in cues_h_path.read_text(encoding="utf-8").splitlines():
         m = pat.search(line)
         if m:
-            h, mn, s, fade_ms, dmx = [int(x) for x in m.groups()]
-            t = h * 3600 + mn * 60 + s
+            h, mn, s, f, fade_ms, dmx = [int(x) for x in m.groups()]
+            t = h * 3600 + mn * 60 + s + f / framerate
             cues.append((t, dmx, fade_ms))
     return sorted(cues, key=lambda c: c[0])
 
