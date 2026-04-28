@@ -37,6 +37,16 @@ COMPOSITIONS = {
     "controlled_burn": {
         "movie":      PROJECT / "Movies" / "2604_ControlledBurn_Correr_UHD_LTC_5-1_30fps_v3_Preview.mov",
         "cues_h":     PROJECT / "src"    / "cues_control_burn.h",
+        "extra_cues": [
+            # Additional fixtures plotted as separate arcs.
+            # Each entry: {"label": str, "cues_h": Path, "color": hex, "parser": "V"|"W"}
+            {
+                "label":  "ADJ Saber Spot WW ch7 (p99 follow)",
+                "cues_h": PROJECT / "src" / "cues_saber_ww.h",
+                "color":  "#66ff88",   # lime green
+                "parser": "W",
+            },
+        ],
         "framerate":  30,
         "total_sec":  1920,          # 32:00
         "apex_sec":   None,          # update once cue arc is written
@@ -117,6 +127,25 @@ def parse_cues(cues_h_path, framerate):
         if m:
             h, mn, s, f, fade_ms, dmx, _strobe = [int(x) for x in m.groups()]
             t = h * 3600 + mn * 60 + s + f / framerate
+            cues.append((t, dmx, fade_ms))
+    return sorted(cues, key=lambda c: c[0])
+
+
+def parse_cues_w(cues_h_path, framerate):
+    """
+    Parse single-channel cues using the W(dmx) macro:
+        { 0, H, M, S, fadeMs, W(dmx) }
+    Returns list of (trigger_sec_float, dmx_target, fade_ms) sorted by time.
+    """
+    pat = re.compile(
+        r"\{\s*0,\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+),\s*W\(\s*(\d+)\s*\)"
+    )
+    cues = []
+    for line in cues_h_path.read_text(encoding="utf-8").splitlines():
+        m = pat.search(line)
+        if m:
+            h, mn, s, fade_ms, dmx = [int(x) for x in m.groups()]
+            t = h * 3600 + mn * 60 + s   # frames field always 0 in saber cues
             cues.append((t, dmx, fade_ms))
     return sorted(cues, key=lambda c: c[0])
 
@@ -269,6 +298,8 @@ def main():
         cues    = []
         dmx_arc = [0] * (TOTAL_SEC + 1)
 
+    cfg = COMPOSITIONS[args.comp]   # keep ref for extra_cues access in plot
+
     # ── Plot ──────────────────────────────────────────────────────────────
     import matplotlib
     matplotlib.use("Agg")
@@ -329,7 +360,26 @@ def main():
         dmx_secs = list(range(TOTAL_SEC + 1))
         ax.fill_between(dmx_secs, dmx_arc, alpha=0.10, color=COL_DMX)
         ax.plot(dmx_secs, dmx_arc,
-                color=COL_DMX, linewidth=1.6, label="DMX CH1  (current cue arc)", zorder=4)
+                color=COL_DMX, linewidth=1.6, label="Varytec LED Spot ch2 — DMX arc (p95 follow)", zorder=4)
+
+    # ── Extra fixture arcs ────────────────────────────────────────────────
+    for extra in cfg.get("extra_cues", []):
+        ep = extra["cues_h"]
+        if not ep.exists():
+            print(f"NOTE: extra cue file not found — skipping {ep.name}")
+            continue
+        if extra.get("parser", "V") == "W":
+            extra_cues = parse_cues_w(ep, FRAMERATE)
+        else:
+            extra_cues = parse_cues(ep, FRAMERATE)
+        extra_arc  = simulate_dmx_arc(extra_cues, TOTAL_SEC)
+        ec = extra["color"]
+        el = extra["label"]
+        ax.fill_between(list(range(TOTAL_SEC + 1)), extra_arc, alpha=0.08, color=ec)
+        ax.plot(list(range(TOTAL_SEC + 1)), extra_arc,
+                color=ec, linewidth=1.2, linestyle="--",
+                label=el, zorder=4)
+        print(f"Extra arc: {el}  ({len(extra_cues)} cues)")
 
     # Film brightest moment marker (based on p95, not mean)
     if p95_vals:
