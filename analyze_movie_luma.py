@@ -136,7 +136,9 @@ def simulate_dmx_arc(cues, total_sec):
         lo = max(0, int(trigger))
         hi = min(total_sec, int(next_trig))
         for sec in range(lo, hi + 1):
-            elapsed = sec - trigger
+            # Sample at midpoint of the second so a 100ms fade correctly
+            # shows the target value at the trigger second, not 1s later.
+            elapsed = (sec + 0.5) - trigger
             if fade_sec > 0:
                 arc[sec] = start_val + (target - start_val) * min(1.0, elapsed / fade_sec)
             else:
