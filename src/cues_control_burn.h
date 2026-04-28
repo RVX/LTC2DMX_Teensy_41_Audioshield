@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED — do not edit by hand.
-// Generated: 2026-04-28 16:29 UTC  by gen_backlight_cues.py
+// Generated: 2026-04-28 16:55 UTC  by gen_backlight_cues.py
 // Source: controlled_burn_luma.csv  metric: yavg_raw (smoothed)
 //
 // Varytec LED Theater Spot 50 3200K — INVERTED LUMA BACKLIGHT (REACTIVE)
@@ -1274,12 +1274,40 @@ static const DMXCue CUE_LIST[] = {
     {  0, 30, 14,  0,   1000, V( 57, 0) },   // yavg= 31.4 sm= 18.1 → DMX 57
     {  0, 30, 16,  0,   1000, V( 69, 0) },   // yavg=  7.3 sm= 16.0 → DMX 69
     {  0, 30, 18,  0,   1000, V( 87, 0) },   // yavg=  1.2 sm=  2.8 → DMX 87
-    {  0, 30, 20,  0,   1000, V( 61, 0) },   // yavg=  1.7 sm=  3.4 → DMX 61
-    {  0, 30, 22,  0,   1000, V( 33, 0) },   // yavg= 10.3 sm= 13.4 → DMX 33
-    {  0, 30, 24,  0,   8000, V(  0, 0) },   // fade to black over 8s
+    {  0, 30, 20,  0,   4000, V( 25, 0) },   // safety hold bridge -> DMX 25 over 4s
+    {  0, 30, 23,  0,   2500, V( 22, 0) },   // safety hold osc -> DMX 22
+    {  0, 30, 26,  0,   2500, V( 29, 0) },   // safety hold osc -> DMX 29
+    {  0, 30, 29,  0,   2500, V( 22, 0) },   // safety hold osc -> DMX 22
+    {  0, 30, 32,  0,   2500, V( 25, 0) },   // safety hold osc -> DMX 25
+    {  0, 30, 35,  0,   2500, V( 28, 0) },   // safety hold osc -> DMX 28
+    {  0, 30, 38,  0,   2500, V( 21, 0) },   // safety hold osc -> DMX 21
+    {  0, 30, 41,  0,   2500, V( 28, 0) },   // safety hold osc -> DMX 28
+    {  0, 30, 44,  0,   2500, V( 25, 0) },   // safety hold osc -> DMX 25
+    {  0, 30, 47,  0,   2500, V( 22, 0) },   // safety hold osc -> DMX 22
+    {  0, 30, 50,  0,   2500, V( 29, 0) },   // safety hold osc -> DMX 29
+    {  0, 30, 53,  0,   2500, V( 22, 0) },   // safety hold osc -> DMX 22
+    {  0, 30, 56,  0,   2500, V( 25, 0) },   // safety hold osc -> DMX 25
+    {  0, 30, 59,  0,   2500, V( 28, 0) },   // safety hold osc -> DMX 28
 
     // ── 00:31:xx ──
-    {  0, 31, 38,  0,      0, V(  0, 0) },   // hard black at end
+    {  0, 31,  2,  0,   2500, V( 21, 0) },   // safety hold osc -> DMX 21
+    {  0, 31,  5,  0,   2500, V( 28, 0) },   // safety hold osc -> DMX 28
+    {  0, 31,  8,  0,   2500, V( 25, 0) },   // safety hold osc -> DMX 25
+    {  0, 31, 11,  0,   2500, V( 22, 0) },   // safety hold osc -> DMX 22
+    {  0, 31, 14,  0,   2500, V( 29, 0) },   // safety hold osc -> DMX 29
+    {  0, 31, 17,  0,   2500, V( 22, 0) },   // safety hold osc -> DMX 22
+    {  0, 31, 20,  0,   2500, V( 25, 0) },   // safety hold osc -> DMX 25
+    {  0, 31, 23,  0,   2500, V( 28, 0) },   // safety hold osc -> DMX 28
+    {  0, 31, 26,  0,   2500, V( 21, 0) },   // safety hold osc -> DMX 21
+    {  0, 31, 29,  0,   2500, V( 28, 0) },   // safety hold osc -> DMX 28
+    {  0, 31, 32,  0,   2500, V( 25, 0) },   // safety hold osc -> DMX 25
+    {  0, 31, 35,  0,   2500, V( 22, 0) },   // safety hold osc -> DMX 22
+    {  0, 31, 38,  0,   2500, V( 29, 0) },   // safety hold osc -> DMX 29
+    {  0, 31, 41,  0,   2500, V( 22, 0) },   // safety hold osc -> DMX 22
+    {  0, 31, 44,  0,   2500, V( 25, 0) },   // safety hold osc -> DMX 25
+    {  0, 31, 47,  0,   2500, V( 28, 0) },   // safety hold osc -> DMX 28
+    {  0, 31, 50,  0,   2500, V( 21, 0) },   // safety hold osc -> DMX 21
+    {  0, 31, 50,  0,      0, V(  0, 0) },   // hard black at end
 
 };  // END CUE_LIST
 

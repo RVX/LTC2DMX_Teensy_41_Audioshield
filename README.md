@@ -67,6 +67,9 @@ All three follow-the-video channels are auto-generated. Edit the constants at th
 | `DIP_EVENTS_MMSS` | list | timestamps where light snaps to 0 then recovers (`(mm,ss)` or `(mm,ss,frame)` for frame-precise) |
 | `FLICKER_EVENTS` | list | single-burst flickers `(mm,ss,lo,hi,n,gap_lo,gap_hi,fade_ms)` |
 | `FLICKER_RANGES` | list | continuous random flicker windows `(start_mm,start_ss,end_mm,end_ss,lo,hi,gap_lo,gap_hi,fade_ms)` |
+| `SAFETY_DMX` | **25** | hold value during ch2 safety zone (post-show, room not pitch-black) |
+| `SAFETY_OSC_AMP / PERIOD` | ±4 / 8 s | tiny oscillation during safety zone |
+| Safety zone | **30:20 → 31:50** | safety hold active after body ends |
 
 ### `gen_saber_ww2_cues.py` — ch5 corridor (NEW: slightly inversed to ch2)
 | Constant | Current | Effect |

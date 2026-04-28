@@ -78,8 +78,20 @@ OUTRO_FADE_MS      = 8000    # smooth fade-to-black at end
 # ── Composition bookends ────────────────────────────────────────────────
 START_RISE_TIME    = (0, 0,  1)   # h,m,s — when intro fade begins
 START_RISE_TARGET  = 40           # DMX value reached after INTRO_FADE_MS
-END_FADE_TIME      = (0, 30, 24)  # start of outro fade
-END_BLACK_TIME     = (0, 31, 38)  # final hard black
+END_FADE_TIME      = (0, 30, 20)  # body ends — safety-hold begins here
+END_BLACK_TIME     = (0, 31, 50)  # final hard black after safety-hold tail
+
+# ── SAFETY-LIGHT HOLD (ch2) ──
+# From END_FADE_TIME → SAFETY_TAIL_END_SEC the lamp holds at SAFETY_DMX with a
+# tiny oscillation — same idea as ch5 — so the room is never pitch-black on
+# ch2 during the post-show window.
+SAFETY_DMX             = 25      # baseline value during ch2 hold zone
+SAFETY_OSC_AMP         = 4       # ±4 DMX gentle breath
+SAFETY_OSC_PERIOD_SEC  = 8.0     # slow pulse, slightly different from ch5 (7s)
+SAFETY_EMIT_EVERY_SEC  = 3       # cue every 3s during hold
+SAFETY_FADE_MS         = 2500    # smooth interpolation
+SAFETY_BRIDGE_MS       = 4000    # 4s bridge from body to SAFETY_DMX
+SAFETY_TAIL_END_SEC    = 31 * 60 + 50   # 31:50 — hold ends, hard black after
 
 # ── INJECTED DIP EVENTS ─────────────────────────────────────────────────────────
 # At each (mm, ss) timestamp the backlight does a fast pitch-down to 0 then
@@ -346,10 +358,19 @@ def generate_cues(data):
             cues.append((eh, em, es, 0, base_end, 400,
                          f"{end_mm}:{end_ss:02d} FLICK_RNG recover → {base_end}"))
 
-    # Outro: fade to black
+    # Outro: bridge to SAFETY_DMX, then hold with tiny oscillation, then black
     eh, em, es = END_FADE_TIME
-    cues.append((eh, em, es, 0, 0, OUTRO_FADE_MS,
-                 f"fade to black over {OUTRO_FADE_MS//1000}s"))
+    end_start_sec = eh * 3600 + em * 60 + es
+    cues.append((eh, em, es, 0, SAFETY_DMX, SAFETY_BRIDGE_MS,
+                 f"safety hold bridge -> DMX {SAFETY_DMX} over {SAFETY_BRIDGE_MS//1000}s"))
+    for sec in range(end_start_sec + SAFETY_EMIT_EVERY_SEC,
+                     SAFETY_TAIL_END_SEC + 1,
+                     SAFETY_EMIT_EVERY_SEC):
+        osc = SAFETY_OSC_AMP * math.sin(2 * math.pi * sec / SAFETY_OSC_PERIOD_SEC)
+        v   = int(round(SAFETY_DMX + osc))
+        h, m, s = sec_to_hms(sec)
+        cues.append((h, m, s, 0, v, SAFETY_FADE_MS,
+                     f"safety hold osc -> DMX {v}"))
     bh, bm, bs = END_BLACK_TIME
     cues.append((bh, bm, bs, 0, 0, 0, "hard black at end"))
 
