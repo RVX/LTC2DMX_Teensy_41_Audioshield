@@ -1,6 +1,6 @@
 #pragma once
 // AUTO-GENERATED — do not edit by hand.
-// Generated: 2026-04-28 16:55 UTC  by gen_backlight_cues.py
+// Generated: 2026-04-28 17:02 UTC  by gen_backlight_cues.py
 // Source: controlled_burn_luma.csv  metric: yavg_raw (smoothed)
 //
 // Varytec LED Theater Spot 50 3200K — INVERTED LUMA BACKLIGHT (REACTIVE)
@@ -1307,7 +1307,7 @@ static const DMXCue CUE_LIST[] = {
     {  0, 31, 44,  0,   2500, V( 25, 0) },   // safety hold osc -> DMX 25
     {  0, 31, 47,  0,   2500, V( 28, 0) },   // safety hold osc -> DMX 28
     {  0, 31, 50,  0,   2500, V( 21, 0) },   // safety hold osc -> DMX 21
-    {  0, 31, 50,  0,      0, V(  0, 0) },   // hard black at end
+    {  0, 31, 50,  0,   6000, V(  0, 0) },   // soft fade to black over 6s
 
 };  // END CUE_LIST
 

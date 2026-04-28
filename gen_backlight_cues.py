@@ -79,7 +79,8 @@ OUTRO_FADE_MS      = 8000    # smooth fade-to-black at end
 START_RISE_TIME    = (0, 0,  1)   # h,m,s — when intro fade begins
 START_RISE_TARGET  = 40           # DMX value reached after INTRO_FADE_MS
 END_FADE_TIME      = (0, 30, 20)  # body ends — safety-hold begins here
-END_BLACK_TIME     = (0, 31, 50)  # final hard black after safety-hold tail
+END_BLACK_TIME     = (0, 31, 50)  # safety-hold ends — soft fade to black starts here
+FINAL_BLACK_FADE_MS = 6000        # length of soft fade to 0 at end (was hard cut)
 
 # ── SAFETY-LIGHT HOLD (ch2) ──
 # From END_FADE_TIME → SAFETY_TAIL_END_SEC the lamp holds at SAFETY_DMX with a
@@ -372,7 +373,8 @@ def generate_cues(data):
         cues.append((h, m, s, 0, v, SAFETY_FADE_MS,
                      f"safety hold osc -> DMX {v}"))
     bh, bm, bs = END_BLACK_TIME
-    cues.append((bh, bm, bs, 0, 0, 0, "hard black at end"))
+    cues.append((bh, bm, bs, 0, 0, FINAL_BLACK_FADE_MS,
+                 f"soft fade to black over {FINAL_BLACK_FADE_MS//1000}s"))
 
     # Sort by absolute frame time so injected sub-second cues land in order
     cues.sort(key=lambda c: (c[0]*3600 + c[1]*60 + c[2]) * 30 + c[3])
