@@ -40,17 +40,23 @@ P99_FLOOR = 30    # p99 below this → DMX 2 (ember floor glow)
 ZONE_A = (308, 1315)
 ZONE_B = (1474, 1828)   # extended to 30:28 so release is generated naturally
 
-# ── Envelope follower parameters ─────────────────────────────────────────────
-# Attack: instant — lamp snaps to every p99 peak immediately (0 ms fade).
-# Release: linear decay at RELEASE_RATE DMX units per second.
-#   RELEASE_RATE = 150 →  255→0 in ~1.7 s  (fast flash-and-decay, follows fire rhythm)
-#   RELEASE_RATE = 80  →  255→0 in ~3.2 s  (slow afterglow)
-#   RELEASE_RATE = 50  →  255→0 in ~5.1 s  (long warm glow)
-ATTACK_MS    = 0    # ms — instant snap on rising edge
-RELEASE_RATE = 150  # DMX units / second — linear decay on falling edge
+# ── Pulse parameters ─────────────────────────────────────────────────────────
+# Every qualifying second emits TWO cues:
+#   1. Attack  — instant snap to peak at frame 0
+#   2. Release — forced fade-to-0 starting at HOLD_FRAMES into the same second
+#
+# At 30 fps:  frame 8  ≈ 267 ms   (burst / strobe mode)
+#             frame 15 ≈ 500 ms   (normal hold before decay)
+#
+# Release fade duration = dmx / RELEASE_RATE * 1000 ms
+#   RELEASE_RATE = 150  → 255→0 in ~1.7 s
+RELEASE_RATE        = 150   # DMX units / second — decay speed
+HOLD_FRAMES_NORMAL  = 15    # frames before release starts (normal fire)
+HOLD_FRAMES_BURST   = 8     # frames before release starts (explosion moments)
+BURST_THRESH_DMX    = 180   # DMX value above which burst hold is used
 
 # ── Cue filter ────────────────────────────────────────────────────────────────
-DELTA_THRESH  = 3    # minimum DMX change to emit a new cue
+DELTA_THRESH  = 3    # minimum DMX value to emit a cue (ignore noise near 0)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -132,54 +138,44 @@ def compute_envelope(data):
 
 def generate_cues(data):
     """
-    Envelope-follower cue generator.
+    Per-second pulse model — replaces envelope follower.
 
-    Strategy:
-      1. Pre-compute the full envelope (fast attack, slow release).
-      2. Scan for transitions:
-           ATTACK  — envelope rises  → emit snap cue (0 ms) at the peak.
-           RELEASE — envelope starts falling → emit ONE fade-to-0 cue
-                      with fadeMs = current_dmx / RELEASE_RATE * 1000.
-                      A subsequent attack cue will interrupt the fade.
-      3. Emit no cue during the release glide (the hardware fade handles it).
+    For every second inside a fire zone where p99 > threshold:
+      1. Attack  : { H, M, S,          0, 0,        W(dmx) }  snap to peak
+      2. Release : { H, M, S, HOLD_FRAMES, fade_ms,  W(0)  }  fade to 0
+
+    High-intensity seconds (dmx >= BURST_THRESH_DMX) use HOLD_FRAMES_BURST
+    (~267 ms) for a strobe feel; others use HOLD_FRAMES_NORMAL (500 ms).
+
+    Tuple format: (h, m, s, frames, fade_ms, dmx, comment)
     """
-    env = compute_envelope(data)
-    env_secs = sorted(env.keys())
-
     cues = []
-    cues.append((0, 0, 0, 0, 0, "hard black at start"))
+    cues.append((0, 0, 0, 0, 0, 0, "hard black at start"))
 
-    last_dmx   = 0   # last emitted DMX target
-    in_release = False
+    for sec, p99 in data:
+        if not in_fire_zone(sec):
+            continue
+        dmx = p99_to_dmx(p99)
+        if dmx <= DELTA_THRESH:
+            continue
 
-    for sec in env_secs:
-        env_val = env[sec]
+        h, m, s  = sec_to_hms(sec)
+        hold_f   = HOLD_FRAMES_BURST if dmx >= BURST_THRESH_DMX else HOLD_FRAMES_NORMAL
+        fade_ms  = int(dmx / RELEASE_RATE * 1000)
+        mode_tag = "BURST" if dmx >= BURST_THRESH_DMX else "pulse"
 
-        if env_val > last_dmx + DELTA_THRESH:
-            # ── ATTACK: rising edge ──────────────────────────────────────────
-            h, m, s = sec_to_hms(sec)
-            cues.append((h, m, s, ATTACK_MS, env_val,
-                         f"{sec//60}:{sec%60:02d} attack→dmx{env_val}"))
-            last_dmx   = env_val
-            in_release = False
-
-        elif env_val < last_dmx - DELTA_THRESH and not in_release:
-            # ── RELEASE: start of descent ────────────────────────────────────
-            # Emit a single linear fade from current value to 0.
-            # Duration = time for RELEASE_RATE to drain last_dmx to 0.
-            fade_ms = int(last_dmx / RELEASE_RATE * 1000)
-            h, m, s  = sec_to_hms(sec)
-            cues.append((h, m, s, fade_ms, 0,
-                         f"{sec//60}:{sec%60:02d} release dmx{last_dmx}→0 over {last_dmx/RELEASE_RATE:.1f}s"))
-            last_dmx   = 0   # fading to 0; next attack overrides
-            in_release = True
-
-        # While in release (env still decaying), skip — hardware fade does it.
-        # in_release is cleared only on next attack.
+        # 1. Instant attack at start of second
+        cues.append((h, m, s, 0, 0, dmx,
+                     f"{sec//60}:{sec%60:02d} {mode_tag} attack\u2192{dmx}"))
+        # 2. Forced release after hold
+        cues.append((h, m, s, hold_f, fade_ms, 0,
+                     f"{sec//60}:{sec%60:02d}+{hold_f}f release {dmx}\u21920 ({dmx/RELEASE_RATE:.1f}s)"))
 
     # Hard black at end of composition
-    cues.append((0, 31, 38, 0, 0, "hard black at end"))
+    cues.append((0, 31, 38, 0, 0, 0, "hard black at end"))
 
+    # Sort by absolute frame position
+    cues.sort(key=lambda c: (c[0] * 3600 + c[1] * 60 + c[2]) * 30 + c[3])
     return cues
 
 
@@ -190,12 +186,12 @@ def write_header(cues, output_path: str):
     lines.append(f"// Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M')} UTC  by gen_saber_cues.py")
     lines.append("// Source: controlled_burn_luma.csv  metric: yp99_raw")
     lines.append("//")
-    lines.append("// ADJ Saber Spot WW — ENVELOPE FOLLOWER on p99")
+    lines.append("// ADJ Saber Spot WW — PER-SECOND PULSE MODEL on p99")
     lines.append(f"//   DMX address {SABER_CH} · 1-channel mode (CH{SABER_CH} = dimmer, 0–255)")
-    lines.append("//   Attack  : instant snap (0 ms) to every p99 peak.")
-    lines.append(f"//   Release : linear decay at {RELEASE_RATE} DMX/s  (≈{255/RELEASE_RATE:.1f}s from DMX 255 to 0).")
-    lines.append("//   One fade-to-0 cue emitted at start of each release phase;")
-    lines.append("//   subsequent attack cue overrides the ongoing fade on hardware.")    
+    lines.append("//   Each qualifying second = attack (frame 0) + forced release (HOLD_FRAMES).")
+    lines.append(f"//   Normal pulse  : hold {HOLD_FRAMES_NORMAL} frames (~{HOLD_FRAMES_NORMAL/30*1000:.0f} ms) then fade at {RELEASE_RATE} DMX/s.")
+    lines.append(f"//   Burst pulse   : hold {HOLD_FRAMES_BURST} frames (~{HOLD_FRAMES_BURST/30*1000:.0f} ms) for dmx≥{BURST_THRESH_DMX} — strobe feel.")
+    lines.append("//   Light ALWAYS returns to 0; next attack overrides any ongoing fade.")    
     lines.append("//")
     lines.append("// p99 → DMX mapping:")
     lines.append(f"//   p99 <  {P99_DARK:3d}  → DMX   0  (dark)")
@@ -213,9 +209,9 @@ def write_header(cues, output_path: str):
 
     # Group sections by zone for readability
     last_zone = None
-    for h, m, s, fade, dmx, comment in cues:
+    for h, m, s, frames, fade, dmx, comment in cues:
         total_s = h * 3600 + m * 60 + s
-        if total_s == 0:
+        if total_s == 0 and frames == 0 and dmx == 0:
             zone = "INIT"
         elif in_fire_zone(total_s):
             zone = "A" if total_s <= ZONE_A[1] else "B"
@@ -236,7 +232,7 @@ def write_header(cues, output_path: str):
             last_zone = zone
 
         lines.append(
-            f"    {{ {h:2d}, {m:2d}, {s:2d},  0,  {fade:6d}, W({dmx:3d}) }},   // {comment}"
+            f"    {{ {h:2d}, {m:2d}, {s:2d}, {frames:2d},  {fade:6d}, W({dmx:3d}) }},   // {comment}"
         )
 
     lines.append("")
@@ -269,8 +265,8 @@ def main():
     write_header(cues, OUTPUT_PATH)
     print(f"  Written → {OUTPUT_PATH}")
 
-    # Quick stats
-    dmx_vals = [c[4] for c in cues if c[4] > 0 and "ember" not in c[5] and "black" not in c[5]]
+    # Quick stats — attack cues only (dmx > 0, not the hard-black bookends)
+    dmx_vals = [c[5] for c in cues if c[5] > 0 and "black" not in c[6]]
     if dmx_vals:
         print(f"  DMX range: {min(dmx_vals)}–{max(dmx_vals)}, "
               f"mean {sum(dmx_vals)/len(dmx_vals):.1f}")
