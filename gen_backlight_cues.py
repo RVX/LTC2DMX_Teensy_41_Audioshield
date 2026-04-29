@@ -43,8 +43,8 @@ OUTPUT_PATH  = os.path.join(PROJECT_ROOT, "src", "cues_control_burn.h")
 # 100. Tuned so body mean ≈ DMX 60.
 BACKLIGHT_FLOOR    = 1       # absolute minimum during composition body
 BACKLIGHT_BASE_CAP = 15      # ceiling of the inverse base before breath/wobble
-BACKLIGHT_HARD_CAP = 100     # total ceiling — lamp never exceeds this
-BACKLIGHT_BIAS     = 8       # constant uplift — tuned to hit body mean ≈ 25
+BACKLIGHT_HARD_CAP = 50      # total ceiling — lamp never exceeds this
+BACKLIGHT_BIAS     = 0       # constant uplift — 0 = pure inverse-luma + oscillation
 YAVG_BRIGHT_REF    = 110.0   # video luma above this → backlight at floor
 SMOOTH_WINDOW_SEC  = 5       # rolling mean window on yavg
 
@@ -154,6 +154,8 @@ FLICKER_EVENTS = [
 # (start_mm, start_ss, end_mm, end_ss, dmx_lo, dmx_hi, gap_frames_min, gap_frames_max, fade_ms)
 # Continuous random flicker across a window — emits a flick every gap_random frames.
 FLICKER_RANGES = [
+    ( 6, 1,  6,15,  0,255, 1,  3,  15),   #  6:01 –  6:15  intense inverse strobe
+    (15,16, 15,33,  0,255, 1,  3,  15),   # 15:16 – 15:33  intense inverse strobe
     (19,59, 20,15,  2, 20, 4,  9, 110),   # 19:59 – 20:15  very subtle 2–20
     (25,15, 25,28,  2,  8, 5, 12, 130),   # 25:15 – 25:28  very subtle 2–8
     (27, 1, 27, 8,  2,  8, 5, 12, 130),   # 27:01 – 27:08  very subtle 2–8
@@ -169,10 +171,16 @@ FLICKER_RANDOM_SEED = 7
 THUNDER_TIMES_PATH   = os.path.join(PROJECT_ROOT, "ch7_strobe_times.json")
 THUNDER_ENABLE       = True
 THUNDER_MIN_DMX      = 80     # only mirror saber flashes above this DMX (skip dim sub-flashes)
-THUNDER_DOWN_MS      = 30     # ultra-fast snap to dark (lightning-fast)
-THUNDER_HOLD_FRAMES  = 3      # ~100 ms of darkness
-THUNDER_RECOVER_MS   = 180    # quick recover to base value
-THUNDER_MIN_GAP_F    = 6      # min frames between consecutive thunder dips (skip dense bursts)
+# "Inverted flash" shape: pre-charge UP, crash to 0, hold dark, slow recover.
+# The pre-charge briefly overrides BACKLIGHT_HARD_CAP so the negative dip is
+# perceptually visible even when base is already dim.
+THUNDER_PRECHARGE_DMX  = 180  # snap-up value before the crash (overrides HARD_CAP)
+THUNDER_PRECHARGE_MS   = 25   # how fast the pre-charge rises
+THUNDER_PRECHARGE_HOLD_F = 1  # frames held at pre-charge before the crash
+THUNDER_CRASH_MS       = 10   # ultra-fast crash to 0
+THUNDER_DARK_HOLD_F    = 10   # ~330 ms of darkness after the crash
+THUNDER_RECOVER_MS     = 400  # slow recover to base
+THUNDER_MIN_GAP_F    = 10     # min frames between consecutive thunder events
 
 # ── PITCH-BLACK RANGES (ch2 forced to 0 across a window) ───────────────────
 # (start_mm, start_ss, end_mm, end_ss). Inside these windows the oscillation
@@ -180,7 +188,7 @@ THUNDER_MIN_GAP_F    = 6      # min frames between consecutive thunder dips (ski
 # suppressed; ch2 is hard-clamped to 0 with a snap-down at start and a smooth
 # recovery at end.
 BLACKOUT_RANGES = [
-    (10, 0, 10, 13),    # 10:00 – 10:13  pitch black
+    (10, 0, 10, 50),    # 10:00 – 10:50  pitch black
     (10,25, 11, 0),     # 10:25 – 11:00  pitch black
     (14, 2, 14, 18),    # 14:02 – 14:18  pitch black
 ]
@@ -200,11 +208,42 @@ BACK_THUNDER_MOMENTS_MMSS = [
     (16, 40),
 ]
 BACK_THUNDER_COUNT       = (4, 7)    # min,max strobes per burst
-BACK_THUNDER_GAP_FRAMES  = (4, 10)   # 130–330 ms between strobes inside a burst
-BACK_THUNDER_HOLD_FRAMES = 2         # ~67 ms of darkness per strobe
-BACK_THUNDER_DOWN_MS     = 25        # ultra-fast snap to 0
-BACK_THUNDER_RECOVER_MS  = 120       # quick recover between strobes
+BACK_THUNDER_GAP_FRAMES  = (5, 12)   # 165–400 ms between strobes inside a burst
+# Same "inverted flash" shape as THUNDER above: pre-charge UP → crash → dark hold → recover.
+BACK_THUNDER_PRECHARGE_DMX  = 140    # slightly hotter than ch7-sync thunder
+BACK_THUNDER_PRECHARGE_MS   = 20
+BACK_THUNDER_PRECHARGE_HOLD_F = 1
+BACK_THUNDER_CRASH_MS       = 8
+BACK_THUNDER_DARK_HOLD_F    = 7      # ~230 ms of darkness per strobe
+BACK_THUNDER_RECOVER_MS     = 200    # quicker recover so next strobe can fire
 BACK_THUNDER_SEED        = 911
+
+# ── EARLY-WINDOW TAMING (0:40–3:00) ───────────────────────────────────
+# Inside this window the inverse-luma logic is bypassed (no big ramps), but a
+# constant chaos+wobble layer is kept on top of a low flat base — result is an
+# erratic, jittery low wash that never climbs into the bright bands.
+EARLY_TAME_RANGE_SEC = (40, 180)   # 0:40 – 3:00
+EARLY_TAME_BASE      = 8           # flat baseline value
+EARLY_TAME_CAP       = 22          # absolute ceiling inside the window
+EARLY_TAME_WOBBLE_AMP    = 4       # ±4 small jitter
+EARLY_TAME_WOBBLE_PERIOD = 2.7
+EARLY_TAME_CHAOS_AMP     = 9       # erratic motion
+EARLY_TAME_CHAOS_PERIODS = (3.1, 5.7, 8.3)
+EARLY_TAME_CHAOS_PHASES  = (0.4, 1.9, 3.3)
+
+def in_early_tame(sec):
+    return EARLY_TAME_RANGE_SEC[0] <= sec <= EARLY_TAME_RANGE_SEC[1]
+
+def early_tame_dmx(sec):
+    wobble = EARLY_TAME_WOBBLE_AMP * math.sin(2 * math.pi * sec / EARLY_TAME_WOBBLE_PERIOD + 0.7)
+    chaos_sum = 0.0
+    for p, ph in zip(EARLY_TAME_CHAOS_PERIODS, EARLY_TAME_CHAOS_PHASES):
+        chaos_sum += math.sin(2 * math.pi * sec / p + ph)
+    chaos_sum /= len(EARLY_TAME_CHAOS_PERIODS)
+    chaos_sum  = 0.5 * chaos_sum + 0.5 * _chaos_noise(sec)
+    chaos = EARLY_TAME_CHAOS_AMP * chaos_sum
+    return max(BACKLIGHT_FLOOR, min(EARLY_TAME_CAP,
+               int(round(EARLY_TAME_BASE + wobble + chaos))))
 
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -274,6 +313,9 @@ def _chaos_noise(sec):
 
 def compute_oscillating_dmx(sec, yavg_sm):
     """Replicate the regular oscillation formula for any second."""
+    # Early-window: bypass inverse-luma entirely — flat low base + tiny pulse.
+    if in_early_tame(sec):
+        return early_tame_dmx(sec)
     base, darkness = yavg_to_inverted_dmx(yavg_sm)
     breath_amp    = BREATH_AMP_MIN + darkness * (BREATH_AMP_MAX - BREATH_AMP_MIN)
     breath_period = BREATH_PERIOD_BRIGHT_SEC + darkness * (BREATH_PERIOD_DARK_SEC - BREATH_PERIOD_BRIGHT_SEC)
@@ -375,12 +417,19 @@ def generate_cues(data):
                 continue
             _base = compute_oscillating_dmx(_ev_sec, yavg_sm_map[_ev_sec])
             _h0, _m0, _s0 = sec_to_hms(_ev_sec)
-            _ah, _am, _as, _af = normalise(_h0, _m0, _s0, _s["frame"])
-            cues.append((_ah, _am, _as, _af, 0, THUNDER_DOWN_MS,
-                         f"THUNDER ↓ 0 ({THUNDER_DOWN_MS}ms) sync ch7 dmx={_s['dmx']}"))
-            _rh, _rm, _rs, _rf = normalise(_h0, _m0, _s0, _s["frame"] + THUNDER_HOLD_FRAMES)
+            _f0 = _s["frame"]
+            # 1. Pre-charge UP (overrides HARD_CAP)
+            _ah, _am, _as, _af = normalise(_h0, _m0, _s0, _f0)
+            cues.append((_ah, _am, _as, _af, THUNDER_PRECHARGE_DMX, THUNDER_PRECHARGE_MS,
+                         f"THUNDER pre-charge ↑ {THUNDER_PRECHARGE_DMX} ({THUNDER_PRECHARGE_MS}ms) sync ch7 dmx={_s['dmx']}"))
+            # 2. Crash to 0
+            _ch, _cm, _cs, _cf = normalise(_h0, _m0, _s0, _f0 + THUNDER_PRECHARGE_HOLD_F)
+            cues.append((_ch, _cm, _cs, _cf, 0, THUNDER_CRASH_MS,
+                         f"THUNDER crash ↓ 0 ({THUNDER_CRASH_MS}ms)"))
+            # 3. Recover to base after dark hold
+            _rh, _rm, _rs, _rf = normalise(_h0, _m0, _s0, _f0 + THUNDER_PRECHARGE_HOLD_F + THUNDER_DARK_HOLD_F)
             cues.append((_rh, _rm, _rs, _rf, _base, THUNDER_RECOVER_MS,
-                         f"THUNDER ↑ back to {_base} ({THUNDER_RECOVER_MS}ms)"))
+                         f"THUNDER recover ↑ {_base} ({THUNDER_RECOVER_MS}ms)"))
             _added += 1
         print(f"  THUNDER: added {_added} inverse-strobe dips from {len(_strobes)} ch7 strobes")
     elif THUNDER_ENABLE:
@@ -471,13 +520,19 @@ def generate_cues(data):
         n_strobes = bt_rng.randint(BACK_THUNDER_COUNT[0], BACK_THUNDER_COUNT[1])
         cur_f = bt_rng.randint(0, 3)
         for i in range(n_strobes):
+            # 1. Pre-charge UP
             ah, am, as_, af = normalise(h0, m0, s0, cur_f)
-            cues.append((ah, am, as_, af, 0, BACK_THUNDER_DOWN_MS,
-                         f"{mm}:{ss:02d}+{cur_f}f BACK_THUNDER#{i+1} ↓ 0 ({BACK_THUNDER_DOWN_MS}ms)"))
-            rh2, rm2, rs2, rf2 = normalise(h0, m0, s0, cur_f + BACK_THUNDER_HOLD_FRAMES)
+            cues.append((ah, am, as_, af, BACK_THUNDER_PRECHARGE_DMX, BACK_THUNDER_PRECHARGE_MS,
+                         f"{mm}:{ss:02d}+{cur_f}f BACK_THUNDER#{i+1} pre-charge ↑ {BACK_THUNDER_PRECHARGE_DMX}"))
+            # 2. Crash to 0
+            ch, cm, cs, cf = normalise(h0, m0, s0, cur_f + BACK_THUNDER_PRECHARGE_HOLD_F)
+            cues.append((ch, cm, cs, cf, 0, BACK_THUNDER_CRASH_MS,
+                         f"{mm}:{ss:02d} BACK_THUNDER#{i+1} crash ↓ 0"))
+            # 3. Recover
+            rh2, rm2, rs2, rf2 = normalise(h0, m0, s0, cur_f + BACK_THUNDER_PRECHARGE_HOLD_F + BACK_THUNDER_DARK_HOLD_F)
             cues.append((rh2, rm2, rs2, rf2, base_dmx, BACK_THUNDER_RECOVER_MS,
-                         f"{mm}:{ss:02d}+{cur_f+BACK_THUNDER_HOLD_FRAMES}f BACK_THUNDER#{i+1} ↑ {base_dmx} ({BACK_THUNDER_RECOVER_MS}ms)"))
-            cur_f += BACK_THUNDER_HOLD_FRAMES + bt_rng.randint(BACK_THUNDER_GAP_FRAMES[0], BACK_THUNDER_GAP_FRAMES[1])
+                         f"{mm}:{ss:02d} BACK_THUNDER#{i+1} recover ↑ {base_dmx}"))
+            cur_f += BACK_THUNDER_PRECHARGE_HOLD_F + BACK_THUNDER_DARK_HOLD_F + bt_rng.randint(BACK_THUNDER_GAP_FRAMES[0], BACK_THUNDER_GAP_FRAMES[1])
 
     # Outro: bridge to SAFETY_DMX, then hold with tiny oscillation, then black
     eh, em, es = END_FADE_TIME

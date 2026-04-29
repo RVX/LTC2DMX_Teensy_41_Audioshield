@@ -7,12 +7,12 @@ Built for **Julian Charrière — Museo Correr, Venice 2026** by Victor Mazon Ga
 
 ## 🟢 Known-good state
 
-**Tag:** `good-state-2026-04-28` · commit `6a56486`  
-Roll back any time with: `git checkout good-state-2026-04-28`
+**Tag:** `good-state-2026-04-29` · commit TBD  
+Roll back any time with: `git checkout good-state-2026-04-29`
 
 | Channel | Range | Mean | Notes |
 |---|---|---|---|
-| ch2 backlight | 1–72 | 25.2 | bias 8 + blackouts (10:00–10:13, 14:02–14:18) + back-thunder (12:50, 15:37, 16:40) + ch7 sync |
+| ch2 backlight | 1–50 | 19.3 | HARD_CAP 50, BIAS 0; blackouts 10:00–10:50 + 10:25–11:00 + 14:02–14:18; back-thunder 12:50/15:37/16:40; ch7 sync thunder; inverse strobe bursts 6:01–6:15 + 15:16–15:33 (0→255, 1–3 frames) |
 | ch5 corridor  | 40–149 | 61.7 | `SABER2_BIAS=44` |
 | ch7 saber WW  | 2–255 | 102.7 | exports `ch7_strobe_times.json` |
 
