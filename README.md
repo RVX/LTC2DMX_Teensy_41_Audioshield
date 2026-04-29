@@ -7,7 +7,7 @@ Built for **Julian Charrière — Museo Correr, Venice 2026** by Victor Mazon Ga
 
 ## 🟢 Known-good state
 
-**Tag:** `good-state-2026-04-29` · commit TBD  
+**Tag:** `good-state-2026-04-29` · commit `382fe9d`  
 Roll back any time with: `git checkout good-state-2026-04-29`
 
 | Channel | Range | Mean | Notes |
